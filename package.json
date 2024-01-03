@@ -17,6 +17,10 @@
       {
         "command": "mistral-vscode.askmistral",
         "title": "Ask Mistral"
+      },
+      {
+        "command": "mistral-vscode.askmistral-model",
+        "title": "Ask Mistral (choose model)"
       }
     ],
     "configuration": {

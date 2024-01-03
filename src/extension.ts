@@ -3,16 +3,15 @@ import axios from 'axios';
 
 
 export function activate(context: vscode.ExtensionContext) {
-	let disposable = vscode.commands.registerCommand('mistral-vscode.askmistral', async () => {
-		const prompt = await vscode.window.showInputBox( {
-			placeHolder: "Ask Mistral AI..."
-		} );
+
+	async function promptAndGetAnswer(model?: string) {
+		const prompt = await vscode.window.showInputBox( { placeHolder: "Ask Mistral AI..." });
 
 		if (prompt) {
 			try {
 				let doc = await vscode.workspace.openTextDocument({
 					language: 'plaintext',
-					content: `[QUESTION]\n${prompt}\n\n[MISTRAL]\n`
+					content: `[QUESTION]\n${prompt}\n\n[MISTRAL] (${model})\n`
 				});
 				let editor = await vscode.window.showTextDocument(doc, { preview: false });
 
@@ -22,26 +21,51 @@ export function activate(context: vscode.ExtensionContext) {
 						const lastLineEnd = lastLine.range.end;
 						editBuilder.insert(lastLineEnd, content);
 					});
-				});
-				
+				}, model);
 			} catch (error) {
 				vscode.window.showErrorMessage("Error fetching answer from Mistral API: " + String(error));
 			}
 		}
+	};
+
+	let disposable = vscode.commands.registerCommand('mistral-vscode.askmistral', async () => {
+		promptAndGetAnswer();
+	});
+
+	let full = vscode.commands.registerCommand('mistral-vscode.askmistral-model', async () => {
+		const model = await vscode.window.showQuickPick(
+			[
+				"mistral-tiny",
+				"mistral-small",
+				"mistral-medium"
+			],
+			{
+				canPickMany: false,
+				placeHolder: "Select the Mistral model to use",
+				title: "Mistral AI Model"
+			}
+		);
+
+		promptAndGetAnswer(model);
 	});
 
 	context.subscriptions.push(disposable);
+	context.subscriptions.push(full);
 }
 
-async function getAnswerFromMistralAPI(question: string, updateContent: (content: string) => void) {
+async function getAnswerFromMistralAPI(question: string, updateContent: (content: string) => void, model?: string) {
 	const apiUrl = 'https://api.mistral.ai/v1/chat/completions';
-	const model = vscode.workspace.getConfiguration('mistral-vscode').preferredModel;
+	const modelToUse = model || vscode.workspace.getConfiguration('mistral-vscode').preferredModel;
 	const apiKey = vscode.workspace.getConfiguration('mistral-vscode').apiKey;
+
+	if (!modelToUse) {
+		throw new Error("Model not specified. Please provide a model as a parameter or set a default model in the extension settings.");
+	}
 
 	const response = await axios.post(
 		apiUrl,
 		{
-			model: model,
+			model: modelToUse,
 			messages: [
 				{ role: "user", content: question }
 			],
@@ -57,7 +81,7 @@ async function getAnswerFromMistralAPI(question: string, updateContent: (content
 
 	stream.on('data', (chunk: any) => {
 		const items = chunk.toString().split('data: ');
-		
+
 		items.forEach((item: string) => {
 			try {
 				if (item.trim() === '[DONE]') {
