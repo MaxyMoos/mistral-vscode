@@ -3,6 +3,10 @@
   "displayName": "Mistral-vscode",
   "description": "Call the Mistral API directly from VS Code",
   "publisher": "Maxence Groine",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MaxyMoos/mistral-vscode.git"
+  },
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.85.0"
@@ -13,6 +17,24 @@
   "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "mistral-chat",
+          "title": "Chat with Mistral",
+          "icon": "resources/icon.png"
+        }
+      ]
+    },
+    "views" : {
+      "mistral-chat": [
+        {
+          "type": "webview",
+          "id": "mistral-vscode.mistralChatView",
+          "name": "Chat with Mistral"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "mistral-vscode.askmistral",
