@@ -1,10 +1,12 @@
 import * as vscode from 'vscode';
 import axios from 'axios';
+import { getRandomValues } from 'crypto';
 
 
 export function activate(context: vscode.ExtensionContext) {
 	const provider = new MistralChatViewProvider(context.extensionUri);
 
+	// register our custom webview provider
 	context.subscriptions.push(
 		vscode.window.registerWebviewViewProvider(MistralChatViewProvider.viewType, provider)
 	);
@@ -142,6 +144,7 @@ async function getFullAnswerFromMistralAPI(question: string, model?: string) {
 	}
 }
 
+
 export function deactivate() {}
 
 
@@ -175,11 +178,64 @@ class MistralChatViewProvider implements vscode.WebviewViewProvider {
 			switch (data.command) {
 				case 'sendMessage':
 					{
-						const response = await getFullAnswerFromMistralAPI(data.text);
-						webviewView.webview.postMessage({ command: 'newMessage', text: response });
+						webviewView.webview.postMessage({ command: 'newMessage' });
+						const response = this._getStreamedAnswerFromMistralAPI(data.text);
+						// const response = await getFullAnswerFromMistralAPI(data.text);
+						// webviewView.webview.postMessage({ command: 'newMessage', text: response });
 						return;
 					}
 			}
+		});
+	}
+
+	private async _getStreamedAnswerFromMistralAPI(question: string, model?: string) {
+		const webview = this._view?.webview;
+		const apiUrl = 'https://api.mistral.ai/v1/chat/completions';
+		const modelToUse = model || vscode.workspace.getConfiguration('mistral-vscode').preferredModel;
+		const apiKey = vscode.workspace.getConfiguration('mistral-vscode').apiKey;
+
+		if (!modelToUse) {
+			throw new Error("Model not specified. Please provide a model or set a default value in the extension settings.");
+		}
+
+		const response = await axios.post(
+			apiUrl,
+			{
+				model: modelToUse,
+				messages: [
+					{ role: "user", content: question }
+				],
+				stream: true
+			},
+			{
+				headers: { 'Authorization': `Bearer ${apiKey}` },
+				responseType: 'stream'
+			}
+		);
+
+		const stream = response.data;
+
+		stream.on('data', (chunk: any) => {
+			const items = chunk.toString().split('data: ');
+
+			items.forEach((item: string) => {
+				try {
+					if (item.trim() === '[DONE]') {
+						webview?.postMessage({ command: 'endSession' });
+						return;
+					}
+					if (item.trim()) {
+						const jsonData = JSON.parse(item.trim());
+						if (jsonData && jsonData.object && jsonData.object === 'chat.completion.chunk') {
+							if (jsonData && jsonData.choices) {
+								webview?.postMessage({ command: 'newChunk', text: jsonData.choices[0].delta.content });
+							}
+						}
+					}
+				} catch (error) {
+					console.error("Error parsing item: ", error);
+				}
+			});
 		});
 	}
 

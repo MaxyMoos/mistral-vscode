@@ -1,10 +1,16 @@
 document.addEventListener('DOMContentLoaded', (e) => {
     const vscode = acquireVsCodeApi();
 
+    let sessionOpen = false;
+
     const messageInput = document.getElementById('messageInput');
     const sendButton = document.getElementById('sendButton');
 
-    sendButton.addEventListener('click', sendMessage);
+    sendButton.addEventListener('click', () => {
+        sessionOpen = true;
+        sendMessage();
+    });
+
     messageInput.addEventListener('keypress', function(event) {
         if (event.key === 'Enter') {
             event.preventDefault();
@@ -12,10 +18,30 @@ document.addEventListener('DOMContentLoaded', (e) => {
         }
     });
 
+    // Initialize a new USER/AI message exchange
+    function startNewExchange() {
+        const chat = document.getElementById('chat');
+        const exchangeId = `exchange-${Date.now()}`;
+        chat.innerHTML += `<div id="${exchangeId}" class="message ai-message"><div class="message-label">[MISTRAL]</div></div>`;
+        return exchangeId;
+    }
+
+    // Append streamed chunks from Mistral API to the DOM
+    function addChunkToExchange(exchangeId, content) {
+        const exchangeDiv = document.getElementById(exchangeId);
+        if (exchangeDiv) {
+            const formattedContent = formatAIResponse(content);
+            exchangeDiv.innerHTML += formattedContent;
+            hljs.highlightAll();
+            scrollToBottom();
+        }
+    }
+
     // Send the user input to the backend
     function sendMessage() {
         const message = messageInput.value.trim();
         if (message) {
+            // TODO: disable sending other messages while the session is open
             const chat = document.getElementById('chat');
             chat.innerHTML += `<div class="message user-message"><div class="message-label">[YOU]</div>${message}</div>`;
             vscode.postMessage({
@@ -45,18 +71,6 @@ document.addEventListener('DOMContentLoaded', (e) => {
         }
 
         return segments.join(''); // reassemble
-        
-        // Replace Markdown code blocks
-        response = response.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
-            lang = lang || 'plaintext';
-            code = escapeHTML(code);
-            return `<pre><code class="language-${lang}">${code}</code></pre>`;
-        });
-        
-        // Replace newlines with <br>
-        response = response.replace(/\n/g, '<br>');
-
-        return response;
     }
 
     // Escape HTML characters to prevent XSS attacks
@@ -74,11 +88,17 @@ document.addEventListener('DOMContentLoaded', (e) => {
         const message = event.data;
         switch (message.command) {
             case 'newMessage':
-                const chat = document.getElementById('chat');
-                const formattedMessage = formatAIResponse(message.text);
-                chat.innerHTML += `<div class="message ai-message"><div class="message-label">[MISTRAL]</div>${formattedMessage}</div>`;
-                hljs.highlightAll();
+                const exchangeId = startNewExchange();
+                vscode.setState({ currentExchangeId: exchangeId });
                 scrollToBottom();
+                break;
+            case 'newChunk':
+                const currentExchangeId = vscode.getState().currentExchangeId;
+                addChunkToExchange(currentExchangeId, message.text);
+                break;
+            case 'endSession':
+                vscode.setState({ currentExchangeId: null });
+                // TODO: reenable sending other messages to the AI
                 break;
         }
     });
