@@ -186,6 +186,9 @@ class MistralChatViewProvider implements vscode.WebviewViewProvider {
 	private _getHtmlForWebview(webview: vscode.Webview): string {
 		const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'main.js'));
 		const styleMainUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'main.css'));
+
+		const highlightJsStyleUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'highlightjs', 'styles', 'atom-one-dark.min.css'));
+		const highlightJsUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'highlightjs', 'highlight.min.js'));
 		const nonce = getNonce();
 
 		return `<!DOCTYPE html>
@@ -201,6 +204,8 @@ class MistralChatViewProvider implements vscode.WebviewViewProvider {
 			<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 			<link href="${styleMainUri}" rel="stylesheet">
+			<link href="${highlightJsStyleUri}" rel="stylesheet">
+			<script nonce="${nonce}" src="${highlightJsUri}"></script>
 
 			<title>Mistral Chat</title>
 		</head>
