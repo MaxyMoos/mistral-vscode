@@ -179,14 +179,14 @@ class MistralChatViewProvider implements vscode.WebviewViewProvider {
 				case 'sendMessage':
 					{
 						webviewView.webview.postMessage({ command: 'newMessage' });
-						const response = this._getStreamedAnswerFromMistralAPI(data.text);
+						const response = this._getStreamedAnswerFromMistralAPI(data.chat);
 						return;
 					}
 			}
 		});
 	}
 
-	private async _getStreamedAnswerFromMistralAPI(question: string, model?: string) {
+	private async _getStreamedAnswerFromMistralAPI(chat: Object, model?: string) {
 		const webview = this._view?.webview;
 		const apiUrl = 'https://api.mistral.ai/v1/chat/completions';
 		const modelToUse = model || vscode.workspace.getConfiguration('mistral-vscode').preferredModel;
@@ -200,9 +200,7 @@ class MistralChatViewProvider implements vscode.WebviewViewProvider {
 			apiUrl,
 			{
 				model: modelToUse,
-				messages: [
-					{ role: "user", content: question }
-				],
+				messages: chat,
 				stream: true
 			},
 			{

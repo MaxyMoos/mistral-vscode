@@ -2,10 +2,12 @@ document.addEventListener('DOMContentLoaded', (e) => {
     const vscode = acquireVsCodeApi();
 
     // session variables
+    let currentChat = [];
+    let currentAIResponse = '';
+
     let isInsideCodeBlock = false;
     let codeBlockCounter = 1;
     let delimiterBuffer = '';
-    let firstChunk = false;
 
     const messageInput = document.getElementById('messageInput');
     const sendButton = document.getElementById('sendButton');
@@ -26,23 +28,27 @@ document.addEventListener('DOMContentLoaded', (e) => {
         if (message) {
             const chat = document.getElementById('chat');
             chat.innerHTML += `<div class="message user-message"><div class="message-label">[YOU]</div>${message}</div>`;
+
+            // send chat to backend
+            currentChat.push({role: "user", content: message});
             vscode.postMessage({
                 command: 'sendMessage',
-                text: message
+                chat: currentChat,
             });
+
+            // UI stuff
             messageInput.value = ''; // clear the input after sending
             messageInput.disabled = true;
             sendButton.disabled = true;
-
             scrollToBottom();
         }
     }
 
     // Initialize a new USER/AI message exchange (called after the user input has been well received by the backend)
     function startNewExchange() {
+        currentAIResponse = '';
         const chat = document.getElementById('chat');
         const exchangeId = `exchange-${Date.now()}`;
-        firstChunk = true;
         chat.innerHTML += `<div id="${exchangeId}" class="message ai-message"><div class="message-label">[MISTRAL]</div><div id="response-loading"><img src="${loadingSvgUri}"></div></div>`;
         return exchangeId;
     }
@@ -123,16 +129,25 @@ document.addEventListener('DOMContentLoaded', (e) => {
                 scrollToBottom();
                 break;
             case 'newChunk':
-                if (firstChunk) { // remove the loading animation
-                    firstChunk = false;
-                    document.getElementById('response-loading').remove();
+                if (currentAIResponse.length === 0) {
+                    let anim = document.getElementById('response-loading');
+                    if (anim) {
+                        anim.remove();
+                    }
                 }
+                currentAIResponse += message.text;
+
+                // format & display chunk into webview
                 const currentExchangeId = vscode.getState().currentExchangeId;
                 addChunkToExchange(currentExchangeId, message.text);
                 break;
             case 'endSession':
+                currentChat.push({role: "assistant", content: currentAIResponse});
                 vscode.setState({ currentExchangeId: null });
-                // TODO: reenable sending other messages to the AI
+
+                // reenable sending other prompts to the API
+                messageInput.disabled = false;
+                sendButton.disabled = false;
                 break;
         }
     });
