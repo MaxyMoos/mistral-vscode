@@ -22,17 +22,33 @@ body {
     padding: 10px;
     background-color: #fff;
     box-shadow: 0 -1px 5px rgba(0, 0, 0, 0.1);
+    align-items: center;
+    gap: 10px;
 }
 
-.input-container input {
+textarea#messageInput {
     flex-grow: 1;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    margin-right: 10px;
+    width: 100%; /* Full-width */
+    padding: 10px; /* Some padding */
+    border: 1px solid #ddd; /* A light border */
+    border-radius: 4px; /* Rounded borders */
+    box-sizing: border-box; /* Box sizing to make padding not affect width */
+    font-family: Bahnschrift Light, Arial, sans-serif;
+    resize: none; /* Disable resizing */
+    /* height: 20px; Initial height similar to an input field */
+    overflow-y: hidden; /* Hide vertical scrollbar */
+    margin-right: 10px; /* Leave space to "Send" button */
+}
+
+/* Style for the focus state */
+textarea#messageInput:focus {
+    outline: none; /* Remove default focus outline */
+    border-color: #0078D4; /* Highlight color when focused */
+    box-shadow: 0 0 5px rgba(0, 120, 212, 0.5); /* Add a subtle shadow when focused */
 }
 
 .input-container button {
+    flex-shrink: 0;
     background-color: #0078D4;
     color: white;
     border: none;

@@ -267,8 +267,8 @@ class MistralChatViewProvider implements vscode.WebviewViewProvider {
 		<body>
 			<div id="chat" class="chat-container"></div>
 			<div class="input-container">
-			<input type="text" id="messageInput" placeholder="Ask me anything..."/>
-			<button id="sendButton">Send</button>
+				<textarea id="messageInput" placeholder="Type your message here..."></textarea>
+				<button id="sendButton">Send</button>
 			</div>
 
 			<script nonce="${nonce}" src="${scriptUri}"></script>

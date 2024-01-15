@@ -14,12 +14,17 @@ document.addEventListener('DOMContentLoaded', (e) => {
 
     const loadingSvgUri = window.loadingSvgUri;
 
+    /*** Event Listeners ***/
     sendButton.addEventListener('click', sendMessage);
     messageInput.addEventListener('keypress', function(event) {
-        if (event.key === 'Enter' && !sendButton.disabled) {
+        if (event.key === 'Enter' && !event.shiftKey && !sendButton.disabled) {
             event.preventDefault();
             sendMessage();
         }
+    });
+    messageInput.addEventListener('input', () => {
+        messageInput.style.height = 'auto'; // Reset the height
+        messageInput.style.height = messageInput.scrollHeight + 'px'; // Set height based on content
     });
 
     // Send the user input to the backend
