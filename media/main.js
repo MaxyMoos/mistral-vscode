@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', (e) => {
         const message = messageInput.value.trim();
         if (message) {
             const chat = document.getElementById('chat');
-            chat.innerHTML += `<div class="message user-message"><div class="message-label">[YOU]</div>${message}</div>`;
+            chat.innerHTML += `<div class="message user-message"><div class="message-label">[YOU]</div>${escapeHTML(message)}</div>`;
 
             // send chat to backend
             currentChat.push({role: "user", content: message});
