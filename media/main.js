@@ -5,25 +5,45 @@ document.addEventListener('DOMContentLoaded', (e) => {
     let isInsideCodeBlock = false;
     let codeBlockCounter = 1;
     let delimiterBuffer = '';
-
-    // let allChunks = [" a size"," of"," `RING","_BUFFER_","SIZE` elements",".\n\n","```c","\n#include"," <stddef",".h>","\n#include"," <","stdint",".h>","\n\n#","define RING","_BUFFER_","SIZE 1","6\n\n","typedef"," struct {\n","    uint8","_","t buffer","[R","ING","_BUFFER","_SIZE];","\n    size","_t head",";\n   "," size_t"," tail;\n","    size_","t"," count;","\n} ring","_buffer_","t;\n","\nvoid ring","_buffer_","init(ring","_buffer_","t *rb",") {\n","   "," rb->","head = ","0;\n","    rb->","tail = ","0;\n","    rb","->count ="," 0;","\n}\n","\n","int ring","_buffer_","full(ring","_buffer_","t *rb",") {\n","    return (","rb->count"," + 1",") % R","ING","_BUFFER","_SIZE =="," rb->head",";\n}","\n\nint"," ring_buffer","_empty(","ring_","buffer","_t"," *rb)"," {\n   "," return rb->","count == ","0;\n","}\n\n","int ring_","buffer_push","(ring_","buffer_t"," *rb,"," uint8_","t data)"," {\n   "," if (ring","_buffer","_","full(","rb)) {","\n        return"," -1;"," // Buffer is"," full\n   "," }\n\n","    rb->","buffer[rb","->head]"," = data;","\n    rb","->head ="," (rb->","head +"," 1)"," % RING","_BUFFER_","SIZE;\n","    rb->","count++;\n","\n    return"," 0;","\n}\n","\nint ring","_buffer_","pop","(","ring","_buffer","_t *","rb, uint","8_t"," *data)"," {\n   "," if (ring","_buffer","_","empty(","rb",")) {","\n        return"," -1;"," // Buffer is"," empty\n   "," }\n\n","    *data"," = rb->","buffer[","rb","->tail];","\n    rb","->tail"," = (rb","->","tail +"," ","1)"," % RING","_","BUFFER_","SIZE;","\n","    rb->","count--;","\n\n   "," return 0",";\n}","\n\n","int ring_","buffer_pe","ek(ring","_","buffer","_t *","rb, uint","8_t"," *data)"," {\n   "," if (ring","_buffer_","empty(","rb))"," {","\n       "," return -1","; // Buffer"," is empty","\n    }","\n\n   "," *data"," = rb->","buffer[rb","->tail];","\n\n","    return ","0;\n","}\n","```\n","\nThe `","ring_buffer","_t","` structure stores"," the buffer,"," head"," and"," tail indices,"," and the current"," count of elements"," in the"," buffer.\n","\nThe `","ring_buffer","_init`"," function initial","izes the buffer"," to the empty"," state.\n","\nThe `","ring_buffer","_full`"," and `ring","_buffer_","empty`"," functions check if"," the"," buffer is"," full or empty",", respectively.","\n\nThe"," `ring_","buffer_push","` function"," adds a new"," element to the"," buffer. It"," checks"," if the"," buffer is full"," before pushing and"," updates the head"," index accordingly",".\n\n","The `ring","_buffer_","pop` function"," removes an"," element from the"," buffer and updates"," the tail"," index. It"," checks if the"," buffer is empty"," before popping",".\n\n","The `ring","_buffer_","peek","` function returns"," the element at"," the tail index"," without removing it",", so it"," can be used"," to inspect"," the most recent"," element in the"," buffer without consum","ing it.","",""];
+    let firstChunk = false;
 
     const messageInput = document.getElementById('messageInput');
     const sendButton = document.getElementById('sendButton');
 
+    const loadingSvgUri = window.loadingSvgUri;
+
     sendButton.addEventListener('click', sendMessage);
     messageInput.addEventListener('keypress', function(event) {
-        if (event.key === 'Enter') {
+        if (event.key === 'Enter' && !sendButton.disabled) {
             event.preventDefault();
             sendMessage();
         }
     });
 
-    // Initialize a new USER/AI message exchange
+    // Send the user input to the backend
+    function sendMessage() {
+        const message = messageInput.value.trim();
+        if (message) {
+            const chat = document.getElementById('chat');
+            chat.innerHTML += `<div class="message user-message"><div class="message-label">[YOU]</div>${message}</div>`;
+            vscode.postMessage({
+                command: 'sendMessage',
+                text: message
+            });
+            messageInput.value = ''; // clear the input after sending
+            messageInput.disabled = true;
+            sendButton.disabled = true;
+
+            scrollToBottom();
+        }
+    }
+
+    // Initialize a new USER/AI message exchange (called after the user input has been well received by the backend)
     function startNewExchange() {
         const chat = document.getElementById('chat');
         const exchangeId = `exchange-${Date.now()}`;
-        chat.innerHTML += `<div id="${exchangeId}" class="message ai-message"><div class="message-label">[MISTRAL]</div></div>`;
+        firstChunk = true;
+        chat.innerHTML += `<div id="${exchangeId}" class="message ai-message"><div class="message-label">[MISTRAL]</div><div id="response-loading"><img src="${loadingSvgUri}"></div></div>`;
         return exchangeId;
     }
 
@@ -93,50 +113,6 @@ document.addEventListener('DOMContentLoaded', (e) => {
         scrollToBottom();
     }
 
-    // Send the user input to the backend
-    function sendMessage() {
-        const message = messageInput.value.trim();
-        if (message) {
-            // TODO: disable sending other messages while the session is open
-            const chat = document.getElementById('chat');
-            chat.innerHTML += `<div class="message user-message"><div class="message-label">[YOU]</div>${message}</div>`;
-            vscode.postMessage({
-                command: 'sendMessage',
-                text: message
-            });
-            messageInput.value = ''; // clear the input after sending
-            scrollToBottom();
-        }
-    }
-
-    function formatAIResponse(response) {
-        return escapeHTML(content).replace(/\n/g, '<br>');
-    }
-
-    function formatCodeBlock(codeContent) {
-        return `<pre><code>${codeContent}</code></pre>`;
-    }
-
-    // Escape HTML characters to prevent XSS attacks
-    function escapeHTML(code) {
-        return code
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
-    }
-
-    function test() {
-        const exchangeId = startNewExchange();
-        for (let i = 0; i < allChunks.length; i++) {
-            addChunkToExchange(exchangeId, allChunks[i]);
-        }
-        if (delimiterBuffer.length) {
-            addChunkToExchange(exchangeId, "");
-        }
-    }
-    
     // Handle AI responses transmitted by the 'backend'
     window.addEventListener('message', (event) => {
         const message = event.data;
@@ -147,6 +123,10 @@ document.addEventListener('DOMContentLoaded', (e) => {
                 scrollToBottom();
                 break;
             case 'newChunk':
+                if (firstChunk) { // remove the loading animation
+                    firstChunk = false;
+                    document.getElementById('response-loading').remove();
+                }
                 const currentExchangeId = vscode.getState().currentExchangeId;
                 addChunkToExchange(currentExchangeId, message.text);
                 break;
@@ -162,4 +142,15 @@ document.addEventListener('DOMContentLoaded', (e) => {
         const chat = document.getElementById('chat');
         chat.scrollTop = chat.scrollHeight;
     }
+
+    // Escape HTML characters to prevent XSS attacks
+    function escapeHTML(code) {
+        return code
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+    
 });

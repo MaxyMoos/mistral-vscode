@@ -180,8 +180,6 @@ class MistralChatViewProvider implements vscode.WebviewViewProvider {
 					{
 						webviewView.webview.postMessage({ command: 'newMessage' });
 						const response = this._getStreamedAnswerFromMistralAPI(data.text);
-						// const response = await getFullAnswerFromMistralAPI(data.text);
-						// webviewView.webview.postMessage({ command: 'newMessage', text: response });
 						return;
 					}
 			}
@@ -242,6 +240,7 @@ class MistralChatViewProvider implements vscode.WebviewViewProvider {
 	private _getHtmlForWebview(webview: vscode.Webview): string {
 		const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'main.js'));
 		const styleMainUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'main.css'));
+		const loadingSvgUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'loading.svg'));
 
 		const highlightJsStyleUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'highlightjs', 'styles', 'atom-one-dark.min.css'));
 		const highlightJsUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'highlightjs', 'highlight.min.js'));
@@ -262,6 +261,9 @@ class MistralChatViewProvider implements vscode.WebviewViewProvider {
 			<link href="${styleMainUri}" rel="stylesheet">
 			<link href="${highlightJsStyleUri}" rel="stylesheet">
 			<script nonce="${nonce}" src="${highlightJsUri}"></script>
+			<script nonce="${nonce}">
+				window.loadingSvgUri = "${loadingSvgUri}";
+			</script>
 
 			<title>Mistral Chat</title>
 		</head>

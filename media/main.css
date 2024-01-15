@@ -41,6 +41,10 @@ body {
     cursor: pointer;
 }
 
+.input-container button:disabled {
+    background-color: #ddd;
+}
+
 .input-container button:hover {
     background-color: #005ea6;
 }
@@ -81,4 +85,9 @@ pre {
 code {
     font-family: Iosevka, monospace;
     font-size: 0.9em;
+}
+
+#response-loading {
+    width: 30px;
+    height: 30px;
 }
