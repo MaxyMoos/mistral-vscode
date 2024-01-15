@@ -48,7 +48,7 @@
     "configuration": {
       "title": "Mistral API",
       "properties": {
-        "mistral-vscode.preferredModel": {
+        "mistral-vscode.defaultModel": {
           "type": "string",
           "default": "mistral-tiny",
           "enum": [

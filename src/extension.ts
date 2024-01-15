@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import axios from 'axios';
-import { getRandomValues } from 'crypto';
 
 
 export function activate(context: vscode.ExtensionContext) {
@@ -15,7 +14,7 @@ export function activate(context: vscode.ExtensionContext) {
 		const prompt = await vscode.window.showInputBox( { placeHolder: "Ask Mistral AI..." });
 
 		if (!model) {
-			model = vscode.workspace.getConfiguration('mistral-vscode').preferredModel;
+			model = vscode.workspace.getConfiguration('mistral-vscode').defaultModel;
 		}
 
 		if (prompt) {
@@ -67,7 +66,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 async function getAnswerFromMistralAPI(question: string, updateContent: (content: string) => void, model?: string) {
 	const apiUrl = 'https://api.mistral.ai/v1/chat/completions';
-	const modelToUse = model || vscode.workspace.getConfiguration('mistral-vscode').preferredModel;
+	const modelToUse = model || vscode.workspace.getConfiguration('mistral-vscode').defaultModel;
 	const apiKey = vscode.workspace.getConfiguration('mistral-vscode').apiKey;
 
 	if (!modelToUse) {
