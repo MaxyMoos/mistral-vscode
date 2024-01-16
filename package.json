@@ -35,14 +35,25 @@
         }
       ]
     },
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "mistral-vscode.exportChatJSON",
+          "when": "false"
+        }
+      ],
+      "webview/context": [
+        {
+          "when": "webviewId == mistral-vscode.mistralChatView",
+          "command": "mistral-vscode.exportChatJSON",
+          "group": "navigation"
+        }
+      ]
+    },
     "commands": [
       {
-        "command": "mistral-vscode.askmistral",
-        "title": "Ask Mistral"
-      },
-      {
-        "command": "mistral-vscode.askmistral-model",
-        "title": "Ask Mistral (choose model)"
+        "command": "mistral-vscode.exportChatJSON",
+        "title": "Export chat (JSON)"
       }
     ],
     "configuration": {

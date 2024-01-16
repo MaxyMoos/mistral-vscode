@@ -1,13 +1,24 @@
 import * as vscode from 'vscode';
 import axios from 'axios';
+import { writeFileSync } from 'fs';
 
 
 export function activate(context: vscode.ExtensionContext) {
 	const provider = new MistralChatViewProvider(context.extensionUri);
+	const exportAsJSONCommand = 'mistral-vscode.exportChatJSON';
+
+	const exportChatAsJSON = () => {
+		provider.exportChatAsJSON();
+	};
 
 	// register our custom webview provider
 	context.subscriptions.push(
 		vscode.window.registerWebviewViewProvider(MistralChatViewProvider.viewType, provider)
+	);
+
+	// register commands
+	context.subscriptions.push(
+		vscode.commands.registerCommand(exportAsJSONCommand, exportChatAsJSON)
 	);
 }
 
@@ -48,8 +59,21 @@ class MistralChatViewProvider implements vscode.WebviewViewProvider {
 						this._getStreamedAnswerFromMistralAPI(data.chat, data.model);
 						return;
 					}
+				case 'didExportChatAsJSON':
+					{
+						vscode.window.showSaveDialog({ title: "Save chat session as JSON", filters: { 'JSON': ['json'] } }).then(fileInfos => {
+							if (fileInfos) {
+								writeFileSync(fileInfos.fsPath, data.contents);
+							}
+						});
+					}
 			}
 		});
+	}
+
+	public exportChatAsJSON() {
+		const webview = this._view?.webview;
+		webview?.postMessage({ command: 'getChatAsJSON' });
 	}
 
 	private async _getStreamedAnswerFromMistralAPI(chat: Object, model?: string) {

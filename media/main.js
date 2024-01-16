@@ -191,6 +191,12 @@ document.addEventListener('DOMContentLoaded', (e) => {
                 messageInput.disabled = false;
                 sendButton.disabled = false;
                 break;
+            case 'getChatAsJSON':
+                vscode.postMessage({
+                    command: 'didExportChatAsJSON',
+                    contents: JSON.stringify({ model: currentModel, messages: currentChat }, undefined, 4)
+                });
+                break;
         }
     });
 
