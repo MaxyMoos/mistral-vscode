@@ -1,6 +1,6 @@
-# mistral-vscode README
+# mistral-vscode
 
-Allows you to call the Mistral AI API directly within VS Code
+Allows you to chat using the Mistral AI API directly within VS Code.
 
 ## Features
 

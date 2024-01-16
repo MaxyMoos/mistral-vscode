@@ -2,8 +2,12 @@ document.addEventListener('DOMContentLoaded', (e) => {
     const vscode = acquireVsCodeApi();
 
     // session variables
+    const defaultModel = window.defaultModel;
+    const loadingSvgUri = window.loadingSvgUri;
+    
     let currentChat = [];
     let currentAIResponse = '';
+    let currentModel = defaultModel;
 
     let isInsideCodeBlock = false;
     let codeBlockCounter = 1;
@@ -12,7 +16,39 @@ document.addEventListener('DOMContentLoaded', (e) => {
     const messageInput = document.getElementById('messageInput');
     const sendButton = document.getElementById('sendButton');
 
-    const loadingSvgUri = window.loadingSvgUri;
+    /*** Model selection ***/
+    function toggleTooltip() {
+        const tooltip = document.getElementById('modelTooltip');
+        tooltip.style.display = tooltip.style.display === 'block' ? 'none' : 'block';
+    }
+    
+    // Close the tooltip when clicking outside
+    window.onclick = function(event) {
+        if (!event.target.matches('.cog-icon') && !event.target.matches('.tooltip ul li')) {
+            const tooltips = document.getElementsByClassName('tooltip');
+            for (let i = 0; i < tooltips.length; i++) {
+                tooltips[i].style.display = 'none';
+            }
+        }
+    };
+
+    const cog = document.getElementById('modelCog');
+    cog.addEventListener('click', toggleTooltip);
+
+    const modelSelectors = document.querySelectorAll('.modelSelector');
+    modelSelectors.forEach(function(modelSelector) {
+        if (modelSelector.dataset.model === defaultModel) {
+            modelSelector.classList.add('selected');
+        }
+
+        modelSelector.addEventListener('click', function(event) {
+            currentModel = this.dataset.model; // switch the active model
+            document.querySelectorAll('#modelTooltip ul li').forEach(li => {
+                li.classList.remove('selected');
+            });
+            this.classList.add('selected');
+        });
+    });
 
     /*** Event Listeners ***/
     sendButton.addEventListener('click', sendMessage);
@@ -39,6 +75,7 @@ document.addEventListener('DOMContentLoaded', (e) => {
             vscode.postMessage({
                 command: 'sendMessage',
                 chat: currentChat,
+                model: currentModel,
             });
 
             // UI stuff
@@ -128,7 +165,7 @@ document.addEventListener('DOMContentLoaded', (e) => {
     window.addEventListener('message', (event) => {
         const message = event.data;
         switch (message.command) {
-            case 'newMessage':
+            case 'messageReceived':
                 const exchangeId = startNewExchange();
                 vscode.setState({ currentExchangeId: exchangeId });
                 scrollToBottom();

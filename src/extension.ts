@@ -9,140 +9,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(
 		vscode.window.registerWebviewViewProvider(MistralChatViewProvider.viewType, provider)
 	);
-		
-	async function promptAndGetAnswer(model?: string) {
-		const prompt = await vscode.window.showInputBox( { placeHolder: "Ask Mistral AI..." });
-
-		if (!model) {
-			model = vscode.workspace.getConfiguration('mistral-vscode').defaultModel;
-		}
-
-		if (prompt) {
-			try {
-				let doc = await vscode.workspace.openTextDocument({
-					language: 'plaintext',
-					content: `[QUESTION]\n${prompt}\n\n[MISTRAL] (${model})\n`
-				});
-				let editor = await vscode.window.showTextDocument(doc, { preview: false });
-
-				getAnswerFromMistralAPI(prompt, (content) => {
-					editor.edit((editBuilder) => {
-						const lastLine = editor.document.lineAt(editor.document.lineCount - 1);
-						const lastLineEnd = lastLine.range.end;
-						editBuilder.insert(lastLineEnd, content);
-					});
-				}, model);
-			} catch (error) {
-				vscode.window.showErrorMessage("Error fetching answer from Mistral API: " + String(error));
-			}
-		}
-	};
-
-	let disposable = vscode.commands.registerCommand('mistral-vscode.askmistral', async () => {
-		promptAndGetAnswer();
-	});
-
-	let full = vscode.commands.registerCommand('mistral-vscode.askmistral-model', async () => {
-		const model = await vscode.window.showQuickPick(
-			[
-				"mistral-tiny",
-				"mistral-small",
-				"mistral-medium"
-			],
-			{
-				canPickMany: false,
-				placeHolder: "Select the Mistral model to use",
-				title: "Mistral AI Model"
-			}
-		);
-
-		promptAndGetAnswer(model);
-	});
-
-	context.subscriptions.push(disposable);
-	context.subscriptions.push(full);
 }
-
-
-async function getAnswerFromMistralAPI(question: string, updateContent: (content: string) => void, model?: string) {
-	const apiUrl = 'https://api.mistral.ai/v1/chat/completions';
-	const modelToUse = model || vscode.workspace.getConfiguration('mistral-vscode').defaultModel;
-	const apiKey = vscode.workspace.getConfiguration('mistral-vscode').apiKey;
-
-	if (!modelToUse) {
-		throw new Error("Model not specified. Please provide a model as a parameter or set a default model in the extension settings.");
-	}
-
-	const response = await axios.post(
-		apiUrl,
-		{
-			model: modelToUse,
-			messages: [
-				{ role: "user", content: question }
-			],
-			stream: true
-		},
-		{
-			headers: { 'Authorization': `Bearer ${apiKey}` },
-			responseType: 'stream'
-		},
-	);
-
-	const stream = response.data;
-
-	stream.on('data', (chunk: any) => {
-		const items = chunk.toString().split('data: ');
-
-		items.forEach((item: string) => {
-			try {
-				if (item.trim() === '[DONE]') {
-					return;
-				}
-				if (item.trim()) {
-					const jsonData = JSON.parse(item.trim());
-					if (jsonData && jsonData.object && jsonData.object === 'chat.completion.chunk') {
-						if (jsonData && jsonData.choices) {
-							updateContent(jsonData.choices[0].delta.content);
-						}
-					}
-				}
-			} catch (error) {
-				console.error("Error parsing item: ", error);
-			}
-		});
-	});
-}
-
-async function getFullAnswerFromMistralAPI(question: string, model?: string) {
-	const apiUrl = 'https://api.mistral.ai/v1/chat/completions';
-	const modelToUse = model || vscode.workspace.getConfiguration('mistral-vscode').preferredModel;
-	const apiKey = vscode.workspace.getConfiguration('mistral-vscode').apiKey;
-
-	if (!modelToUse) {
-		throw new Error("Model not specified. Please provide a model as a parameter or set a default model in the extension settings.");
-	}
-
-	const response = await axios.post(
-		apiUrl,
-		{
-			model: modelToUse,
-			messages: [
-				{ role: "user", content: question }
-			],
-		},
-		{
-			headers: { 'Authorization': `Bearer ${apiKey}` },
-		},
-	);
-
-	if (response.status === 200) {
-		const answer = response.data.choices[0].message.content;
-		return answer;
-	} else {
-		vscode.window.showErrorMessage("Mistral API returned with error code " + response.status);
-	}
-}
-
 
 export function deactivate() {}
 
@@ -177,8 +44,8 @@ class MistralChatViewProvider implements vscode.WebviewViewProvider {
 			switch (data.command) {
 				case 'sendMessage':
 					{
-						webviewView.webview.postMessage({ command: 'newMessage' });
-						const response = this._getStreamedAnswerFromMistralAPI(data.chat);
+						webviewView.webview.postMessage({ command: 'messageReceived' });
+						this._getStreamedAnswerFromMistralAPI(data.chat, data.model);
 						return;
 					}
 			}
@@ -235,6 +102,8 @@ class MistralChatViewProvider implements vscode.WebviewViewProvider {
 	}
 
 	private _getHtmlForWebview(webview: vscode.Webview): string {
+		const defaultModel = vscode.workspace.getConfiguration('mistral-vscode').defaultModel;
+
 		const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'main.js'));
 		const styleMainUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'main.css'));
 		const loadingSvgUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'loading.svg'));
@@ -259,6 +128,7 @@ class MistralChatViewProvider implements vscode.WebviewViewProvider {
 			<link href="${highlightJsStyleUri}" rel="stylesheet">
 			<script nonce="${nonce}" src="${highlightJsUri}"></script>
 			<script nonce="${nonce}">
+				window.defaultModel = "${defaultModel}";
 				window.loadingSvgUri = "${loadingSvgUri}";
 			</script>
 
@@ -269,6 +139,16 @@ class MistralChatViewProvider implements vscode.WebviewViewProvider {
 			<div class="input-container">
 				<textarea id="messageInput" placeholder="Type your message here..."></textarea>
 				<button id="sendButton">Send</button>
+				<div class="model-selector">
+					<span id="modelCog" class="cog-icon">⚙️</span>
+					<div id="modelTooltip" class="tooltip">
+						<ul>
+							<li class="modelSelector" data-model="mistral-tiny">mistral-tiny</li>
+							<li class="modelSelector" data-model="mistral-small">mistral-small</li>
+							<li class="modelSelector" data-model="mistral-medium">mistral-medium</li>
+						</ul>
+					</div>
+				</div>
 			</div>
 
 			<script nonce="${nonce}" src="${scriptUri}"></script>

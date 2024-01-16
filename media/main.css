@@ -107,3 +107,47 @@ code {
     width: 30px;
     height: 30px;
 }
+
+.model-selector {
+    position: relative;
+    /* Other styles... */
+}
+
+.cog-icon {
+    cursor: pointer;
+    /* Additional styling for the icon */
+}
+
+.tooltip {
+    display: none;
+    position: absolute;
+    right: 0;
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 10px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1;
+    bottom: 20px;
+    width: 130px;
+}
+
+.tooltip ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.tooltip ul li {
+    padding: 5px;
+    cursor: pointer;
+}
+
+.tooltip ul li.selected {
+    color: green;
+}
+
+.tooltip ul li.selected:before {
+    content: '✔ ';
+    /* Additional styling for the tick symbol */
+}
