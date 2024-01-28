@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 import axios from 'axios';
-import { writeFileSync } from 'fs';
+import { existsSync, mkdir, mkdirSync, writeFileSync } from 'fs';
+import path from 'path';
+import * as os from 'os';
 
 
 export function activate(context: vscode.ExtensionContext) {
@@ -29,6 +31,8 @@ class MistralChatViewProvider implements vscode.WebviewViewProvider {
 	public static readonly viewType = 'mistral-vscode.mistralChatView';
 
 	private _view?: vscode.WebviewView;
+	private currentChat?: Object[] = [];
+	private _config = vscode.workspace.getConfiguration('mistral-vscode');
 
 	constructor(
 		private readonly _extensionUri: vscode.Uri,
@@ -59,6 +63,27 @@ class MistralChatViewProvider implements vscode.WebviewViewProvider {
 						this._getStreamedAnswerFromMistralAPI(data.chat, data.model);
 						return;
 					}
+				case 'saveChat':
+					{
+						if (!this._config.mustSaveChats) { return; }
+
+						let saveChatsLocation = '';
+						let defaultVal = '';
+						if (os.platform() === 'win32') {
+							defaultVal = '%USERPROFILE%';
+						}
+						saveChatsLocation = path.resolve(this._config.saveChatsLocation.replace(/^~/, os.userInfo().homedir || defaultVal));
+
+						// Create the chat logs directory if required
+						if (!existsSync(saveChatsLocation)) {
+							mkdirSync(saveChatsLocation, { recursive: true });
+						}
+
+						// Write log file
+						const logFilePath = path.join(saveChatsLocation, `${data.chatID}.log`);
+						writeFileSync(logFilePath, data.contents);
+						return;
+					}
 				case 'didExportChatAsJSON':
 					{
 						vscode.window.showSaveDialog({ title: "Save chat session as JSON", filters: { 'JSON': ['json'] } }).then(fileInfos => {
@@ -66,6 +91,7 @@ class MistralChatViewProvider implements vscode.WebviewViewProvider {
 								writeFileSync(fileInfos.fsPath, data.contents);
 							}
 						});
+						return;
 					}
 			}
 		});
@@ -126,7 +152,7 @@ class MistralChatViewProvider implements vscode.WebviewViewProvider {
 	}
 
 	private _getHtmlForWebview(webview: vscode.Webview): string {
-		const defaultModel = vscode.workspace.getConfiguration('mistral-vscode').defaultModel;
+		const defaultModel = this._config.defaultModel;
 
 		const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'main.js'));
 		const styleMainUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'main.css'));

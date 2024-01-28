@@ -3,9 +3,12 @@ document.addEventListener('DOMContentLoaded', (e) => {
 
     // session variables
     const defaultModel = window.defaultModel;
+    const mustSaveChats = window.mustSaveChats;
+    const saveChatsLocation = window.saveChatsLocation;
     const loadingSvgUri = window.loadingSvgUri;
     
     let currentChat = [];
+    let currentChatID = `chat-${Date.now()}`;
     let currentAIResponse = '';
     let currentModel = defaultModel;
 
@@ -63,6 +66,17 @@ document.addEventListener('DOMContentLoaded', (e) => {
         messageInput.style.height = messageInput.scrollHeight + 'px'; // Set height based on content
     });
 
+    // Clean up everything
+    function startNewChat() {
+        currentChat = [];
+        currentAIResponse = '';
+
+        const chat = document.getElementById('chat');
+        chat.innerHTML = '';
+
+        currentChatID = `chat-${Date.now()}`;
+    }
+
     // Send the user input to the backend
     function sendMessage() {
         const message = messageInput.value.trim();
@@ -70,7 +84,7 @@ document.addEventListener('DOMContentLoaded', (e) => {
             const chat = document.getElementById('chat');
             chat.innerHTML += `<div class="message user-message"><div class="message-label">[YOU]</div>${escapeHTML(message)}</div>`;
 
-            // send chat to backend
+            // send chat (history + new message) to backend
             currentChat.push({role: "user", content: message});
             vscode.postMessage({
                 command: 'sendMessage',
@@ -186,6 +200,13 @@ document.addEventListener('DOMContentLoaded', (e) => {
             case 'endSession':
                 currentChat.push({role: "assistant", content: currentAIResponse});
                 vscode.setState({ currentExchangeId: null });
+
+                // if necessary, save chat to file
+                vscode.postMessage({
+                    command: 'saveChat',
+                    chatID: currentChatID,
+                    contents: JSON.stringify({ model: currentModel, messages: currentChat }, undefined, 4)
+                });
 
                 // reenable sending other prompts to the API
                 messageInput.disabled = false;

@@ -77,6 +77,18 @@
           "type": "string",
           "default": "",
           "scope": "machine-overridable"
+        },
+        "mistral-vscode.mustSaveChats": {
+          "type": "boolean",
+          "default": "false",
+          "scope": "machine-overridable",
+          "title": "Save Chats"
+        },
+        "mistral-vscode.saveChatsLocation": {
+          "type": "string",
+          "default": "~/.mistral-vscode/chats/",
+          "scope": "machine",
+          "title": "Saved chats location"
         }
       }
     }
