@@ -1,10 +1,15 @@
+class ChatMessage {
+    constructor(role, content) {
+        this.role = role,
+        this.content = content;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', (e) => {
     const vscode = acquireVsCodeApi();
 
     // session variables
     const defaultModel = window.defaultModel;
-    const mustSaveChats = window.mustSaveChats;
-    const saveChatsLocation = window.saveChatsLocation;
     const loadingSvgUri = window.loadingSvgUri;
     
     let currentChat = [];
@@ -16,6 +21,7 @@ document.addEventListener('DOMContentLoaded', (e) => {
     let codeBlockCounter = 1;
     let delimiterBuffer = '';
 
+    const chat = document.getElementById('chat');
     const messageInput = document.getElementById('messageInput');
     const sendButton = document.getElementById('sendButton');
 
@@ -54,11 +60,11 @@ document.addEventListener('DOMContentLoaded', (e) => {
     });
 
     /*** Event Listeners ***/
-    sendButton.addEventListener('click', sendMessage);
+    sendButton.addEventListener('click', sendUserMessage);
     messageInput.addEventListener('keypress', function(event) {
         if (event.key === 'Enter' && !event.shiftKey && !sendButton.disabled) {
             event.preventDefault();
-            sendMessage();
+            sendUserMessage();
         }
     });
     messageInput.addEventListener('input', () => {
@@ -66,26 +72,55 @@ document.addEventListener('DOMContentLoaded', (e) => {
         messageInput.style.height = messageInput.scrollHeight + 'px'; // Set height based on content
     });
 
+    // If there's a previous state, the webview was hidden then shown back again, restore latest chat
+    let previousState = vscode.getState();
+    if (previousState && previousState.lastChat) {
+        currentChat = previousState.lastChat;
+        currentChatID = previousState.lastChatID;
+        for (var i = 0; i < previousState.lastChat.length; i++) {
+            chat.innerHTML += formatMessage(currentChat[i]);
+        }
+        hljs.highlightAll();
+    }
+
+    /*** ======================= ***/
+    /*** CHAT HANDLING FUNCTIONS ***/
+    /*** ======================= ***/
+
     // Clean up everything
     function startNewChat() {
         currentChat = [];
         currentAIResponse = '';
-
-        const chat = document.getElementById('chat');
-        chat.innerHTML = '';
-
         currentChatID = `chat-${Date.now()}`;
+        chat.innerHTML = '';
+    }
+
+    function formatMessage(chatMessage) {
+        let escapedContent = escapeHTML(chatMessage.content);
+        var codeBlockRegex = /```(\w+)\s([^`]+)```/g;
+        escapedContent = escapedContent.replace(codeBlockRegex, function(match, language, code) {
+            return `<pre><code class="language-${language}">${code}</code></pre>`;
+        });
+
+        switch (chatMessage.role) {
+            case 'assistant':
+                return `<div class="message ai-message"><div class="message-label">[MISTRAL]</div>${escapedContent}</div>`;
+            case 'user':
+                return `<div class="message user-message"><div class="message-label">[YOU]</div>${escapedContent}</div>`;
+        }
     }
 
     // Send the user input to the backend
-    function sendMessage() {
+    function sendUserMessage() {
         const message = messageInput.value.trim();
         if (message) {
-            const chat = document.getElementById('chat');
-            chat.innerHTML += `<div class="message user-message"><div class="message-label">[YOU]</div>${escapeHTML(message)}</div>`;
+            let currentMessage = new ChatMessage("user", message);
 
-            // send chat (history + new message) to backend
-            currentChat.push({role: "user", content: message});
+            // Format & append user message to chat window
+            chat.innerHTML += formatMessage(currentMessage);
+
+            // send chat (history + new message) to backend for API call
+            currentChat.push(currentMessage);
             vscode.postMessage({
                 command: 'sendMessage',
                 chat: currentChat,
@@ -103,7 +138,6 @@ document.addEventListener('DOMContentLoaded', (e) => {
     // Initialize a new USER/AI message exchange (called after the user input has been well received by the backend)
     function startNewExchange() {
         currentAIResponse = '';
-        const chat = document.getElementById('chat');
         const exchangeId = `exchange-${Date.now()}`;
         chat.innerHTML += `<div id="${exchangeId}" class="message ai-message"><div class="message-label">[MISTRAL]</div><div id="response-loading"><img src="${loadingSvgUri}"></div></div>`;
         return exchangeId;
@@ -198,8 +232,9 @@ document.addEventListener('DOMContentLoaded', (e) => {
                 addChunkToExchange(currentExchangeId, message.text);
                 break;
             case 'endSession':
-                currentChat.push({role: "assistant", content: currentAIResponse});
-                vscode.setState({ currentExchangeId: null });
+                let aiChatMessage = new ChatMessage("assistant", currentAIResponse);
+                currentChat.push(aiChatMessage);
+                vscode.setState({ currentExchangeId: null, lastChat: currentChat, lastChatID: currentChatID });
 
                 // if necessary, save chat to file
                 vscode.postMessage({
@@ -223,7 +258,6 @@ document.addEventListener('DOMContentLoaded', (e) => {
 
     // Autoscroll the chat div
     function scrollToBottom() {
-        const chat = document.getElementById('chat');
         chat.scrollTop = chat.scrollHeight;
     }
 
