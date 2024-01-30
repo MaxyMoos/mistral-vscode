@@ -163,3 +163,11 @@ pre > code {
     content: '✔ ';
     /* Additional styling for the tick symbol */
 }
+
+#startNewChat {
+    cursor: pointer;
+}
+
+#startNewChat:hover {
+    color: darkgreen;
+}

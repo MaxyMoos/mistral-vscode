@@ -192,6 +192,8 @@ class MistralChatViewProvider implements vscode.WebviewViewProvider {
 				<div class="model-selector">
 					<span id="modelCog" class="cog-icon">⚙️</span>
 					<div id="modelTooltip" class="tooltip">
+						<span id="startNewChat">Start new chat</span>
+						<hr/>
 						<span><b>Active model</b></span>
 						<ul>
 							<li class="modelSelector" data-model="mistral-tiny">mistral-tiny</li>

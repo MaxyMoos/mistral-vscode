@@ -24,6 +24,7 @@ document.addEventListener('DOMContentLoaded', (e) => {
     const chat = document.getElementById('chat');
     const messageInput = document.getElementById('messageInput');
     const sendButton = document.getElementById('sendButton');
+    const startNewChatButton = document.getElementById('startNewChat');
 
     /*** Model selection ***/
     function toggleTooltip() {
@@ -60,6 +61,7 @@ document.addEventListener('DOMContentLoaded', (e) => {
     });
 
     /*** Event Listeners ***/
+    startNewChatButton.addEventListener('click', startNewChat);
     sendButton.addEventListener('click', sendUserMessage);
     messageInput.addEventListener('keypress', function(event) {
         if (event.key === 'Enter' && !event.shiftKey && !sendButton.disabled) {
@@ -94,6 +96,7 @@ document.addEventListener('DOMContentLoaded', (e) => {
         currentAIResponse = '';
         currentChatID = `chat-${Date.now()}`;
         chat.innerHTML = '';
+        vscode.setState({ currentExchangeId: null, lastChat: currentChat, lastChatID: currentChatID });
     }
 
     function formatMessage(chatMessage) {
