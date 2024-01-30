@@ -100,7 +100,13 @@ pre {
 
 code {
     font-family: Iosevka, monospace;
-    font-size: 0.9em;
+    font-size: 1em;
+    color: #3e56cc;
+    font-weight: bold;
+}
+
+pre > code {
+    font-weight: normal;
 }
 
 #response-loading {
@@ -139,12 +145,18 @@ code {
 }
 
 .tooltip ul li {
+    margin-left: 5px;
     padding: 5px;
     cursor: pointer;
+    line-height: 0.7;
 }
 
 .tooltip ul li.selected {
     color: green;
+}
+
+.tooltip ul li:before {
+    content: '- ';
 }
 
 .tooltip ul li.selected:before {

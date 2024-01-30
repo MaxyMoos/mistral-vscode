@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', (e) => {
         messageInput.style.height = messageInput.scrollHeight + 'px'; // Set height based on content
     });
 
-    // If there's a previous state, the webview was hidden then shown back again, restore latest chat
+    // If there's a previous state, the webview was hidden then shown back again, so restore latest chat
     let previousState = vscode.getState();
     if (previousState && previousState.lastChat) {
         currentChat = previousState.lastChat;
@@ -81,6 +81,7 @@ document.addEventListener('DOMContentLoaded', (e) => {
             chat.innerHTML += formatMessage(currentChat[i]);
         }
         hljs.highlightAll();
+        scrollToBottom();
     }
 
     /*** ======================= ***/
@@ -97,9 +98,28 @@ document.addEventListener('DOMContentLoaded', (e) => {
 
     function formatMessage(chatMessage) {
         let escapedContent = escapeHTML(chatMessage.content);
+
+        // Regex to detect code blocks in Markdown triple-quotes
         var codeBlockRegex = /```(\w+)\s([^`]+)```/g;
         escapedContent = escapedContent.replace(codeBlockRegex, function(match, language, code) {
             return `<pre><code class="language-${language}">${code}</code></pre>`;
+        });
+
+        var codeTermsRegex = /`([\w-_]+)`/g;
+        escapedContent = escapedContent.replace(codeTermsRegex, function(match, codeTerm) {
+            return `<code>${codeTerm}</code>`;
+        });
+
+        // Regular expression to match '\n' outside of '<pre>' and '</pre>'
+        var regex = /(<pre>.*?<\/pre>)|(\n)/gs;
+
+        // Replace '\n' with '<br>' except within '<pre>' and '</pre>'
+        escapedContent = escapedContent.replace(regex, function (match, codeBlock, newline) {
+            if (codeBlock) {
+                return codeBlock; // Return '<pre>' content unchanged
+            } else {
+                return '<br>'; // Replace '\n' with '<br>' outside of '<pre>'
+            }
         });
 
         switch (chatMessage.role) {
