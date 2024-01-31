@@ -1,13 +1,18 @@
 import * as vscode from 'vscode';
 import axios from 'axios';
-import { existsSync, mkdir, mkdirSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, openSync, readFileSync, readSync, writeFileSync } from 'fs';
 import path from 'path';
 import * as os from 'os';
 
 
 export function activate(context: vscode.ExtensionContext) {
 	const provider = new MistralChatViewProvider(context.extensionUri);
+	const openChatCommand = 'mistral-vscode.openChat';
 	const exportAsJSONCommand = 'mistral-vscode.exportChatJSON';
+
+	const openChat = () => {
+		provider.openChat();
+	};
 
 	const exportChatAsJSON = () => {
 		provider.exportChatAsJSON();
@@ -20,6 +25,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// register commands
 	context.subscriptions.push(
+		vscode.commands.registerCommand(openChatCommand, openChat),
 		vscode.commands.registerCommand(exportAsJSONCommand, exportChatAsJSON)
 	);
 }
@@ -31,12 +37,27 @@ class MistralChatViewProvider implements vscode.WebviewViewProvider {
 	public static readonly viewType = 'mistral-vscode.mistralChatView';
 
 	private _view?: vscode.WebviewView;
-	private currentChat?: Object[] = [];
 	private _config = vscode.workspace.getConfiguration('mistral-vscode');
 
 	constructor(
 		private readonly _extensionUri: vscode.Uri,
 	) { }
+
+	private getSavedChatsLocation() {
+		let saveChatsLocation = '';
+		let defaultVal = '';
+		if (os.platform() === 'win32') {
+			defaultVal = '%USERPROFILE%';
+		}
+		saveChatsLocation = path.resolve(this._config.saveChatsLocation.replace(/^~/, os.userInfo().homedir || defaultVal));
+
+		// Create the chat logs directory if required
+		if (!existsSync(saveChatsLocation)) {
+			mkdirSync(saveChatsLocation, { recursive: true });
+		}
+
+		return saveChatsLocation;
+	}
 
 	public resolveWebviewView(
 		webviewView: vscode.WebviewView,
@@ -67,20 +88,14 @@ class MistralChatViewProvider implements vscode.WebviewViewProvider {
 					{
 						if (!this._config.mustSaveChats) { return; }
 
-						let saveChatsLocation = '';
-						let defaultVal = '';
-						if (os.platform() === 'win32') {
-							defaultVal = '%USERPROFILE%';
-						}
-						saveChatsLocation = path.resolve(this._config.saveChatsLocation.replace(/^~/, os.userInfo().homedir || defaultVal));
-
+						let saveChatsLocation = this.getSavedChatsLocation();
 						// Create the chat logs directory if required
 						if (!existsSync(saveChatsLocation)) {
 							mkdirSync(saveChatsLocation, { recursive: true });
 						}
 
 						// Write log file
-						const logFilePath = path.join(saveChatsLocation, `${data.chatID}.log`);
+						const logFilePath = path.join(saveChatsLocation, `${data.chatID}.json`);
 						writeFileSync(logFilePath, data.contents);
 						return;
 					}
@@ -97,6 +112,38 @@ class MistralChatViewProvider implements vscode.WebviewViewProvider {
 		});
 	}
 
+	public openChat() {
+		let saveChatsLocation = this.getSavedChatsLocation();
+
+		if (!existsSync(saveChatsLocation)) {
+			mkdirSync(saveChatsLocation, { recursive: true });
+		}
+		
+		vscode.window.showOpenDialog(
+			{
+				defaultUri: vscode.Uri.file(saveChatsLocation),
+				canSelectFiles: true,
+				canSelectFolders: false,
+				canSelectMany: false,
+				filters: {
+					"JSON": ['json']
+				},
+				title: "Open a previous chat"
+			}
+		).then(fileInfos => {
+			if (fileInfos?.length) {
+				let selectedFile = fileInfos[0];
+				let filenameWithExtension = path.basename(selectedFile.fsPath);
+				let filenameWithoutExtension = filenameWithExtension.replace(/\.[^/.]+$/, "");
+				let contents = readFileSync(selectedFile.fsPath);
+				let jsonContents = JSON.parse(contents.toString());
+				jsonContents.chatID = filenameWithoutExtension;
+				this._view?.webview.postMessage({ command: 'openChat', data: jsonContents });
+			}
+		});
+		return;
+	}
+
 	public exportChatAsJSON() {
 		const webview = this._view?.webview;
 		webview?.postMessage({ command: 'getChatAsJSON' });
@@ -105,8 +152,8 @@ class MistralChatViewProvider implements vscode.WebviewViewProvider {
 	private async _getStreamedAnswerFromMistralAPI(chat: Object, model?: string) {
 		const webview = this._view?.webview;
 		const apiUrl = 'https://api.mistral.ai/v1/chat/completions';
-		const modelToUse = model || vscode.workspace.getConfiguration('mistral-vscode').preferredModel;
-		const apiKey = vscode.workspace.getConfiguration('mistral-vscode').apiKey;
+		const modelToUse = model || this._config.preferredModel;
+		const apiKey = this._config.apiKey;
 
 		if (!modelToUse) {
 			throw new Error("Model not specified. Please provide a model or set a default value in the extension settings.");

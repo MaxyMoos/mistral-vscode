@@ -38,11 +38,20 @@
     "menus": {
       "commandPalette": [
         {
+          "command": "mistral-vscode.openChat",
+          "when": "false"
+        },
+        {
           "command": "mistral-vscode.exportChatJSON",
           "when": "false"
         }
       ],
       "webview/context": [
+        {
+          "when": "webviewId == mistral-vscode.mistralChatView",
+          "command": "mistral-vscode.openChat",
+          "group": "navigation"
+        },
         {
           "when": "webviewId == mistral-vscode.mistralChatView",
           "command": "mistral-vscode.exportChatJSON",
@@ -51,6 +60,10 @@
       ]
     },
     "commands": [
+      {
+        "command": "mistral-vscode.openChat",
+        "title": "Open chat"
+      },
       {
         "command": "mistral-vscode.exportChatJSON",
         "title": "Export chat (JSON)"

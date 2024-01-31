@@ -77,13 +77,7 @@ document.addEventListener('DOMContentLoaded', (e) => {
     // If there's a previous state, the webview was hidden then shown back again, so restore latest chat
     let previousState = vscode.getState();
     if (previousState && previousState.lastChat) {
-        currentChat = previousState.lastChat;
-        currentChatID = previousState.lastChatID;
-        for (var i = 0; i < previousState.lastChat.length; i++) {
-            chat.innerHTML += formatMessage(currentChat[i]);
-        }
-        hljs.highlightAll();
-        scrollToBottom();
+        openChat({ chatID: previousState.lastChatID, model: previousState.model || defaultModel, messages: previousState.lastChat });
     }
 
     /*** ======================= ***/
@@ -97,6 +91,19 @@ document.addEventListener('DOMContentLoaded', (e) => {
         currentChatID = `chat-${Date.now()}`;
         chat.innerHTML = '';
         vscode.setState({ currentExchangeId: null, lastChat: currentChat, lastChatID: currentChatID });
+    }
+
+    function openChat(chatData) {
+        startNewChat();
+        currentModel = chatData.model;
+        // TODO - update tooltip to reflect active model
+        currentChatID = chatData.chatID;
+        currentChat = chatData.messages;
+        for (var i = 0; i < currentChat.length; i++) {
+            chat.innerHTML += formatMessage(currentChat[i]);
+        }
+        hljs.highlightAll();
+        scrollToBottom();
     }
 
     function formatMessage(chatMessage) {
@@ -232,7 +239,7 @@ document.addEventListener('DOMContentLoaded', (e) => {
         scrollToBottom();
     }
 
-    // Handle AI responses transmitted by the 'backend'
+    // Handle communications with the 'backend'
     window.addEventListener('message', (event) => {
         const message = event.data;
         switch (message.command) {
@@ -257,7 +264,7 @@ document.addEventListener('DOMContentLoaded', (e) => {
             case 'endSession':
                 let aiChatMessage = new ChatMessage("assistant", currentAIResponse);
                 currentChat.push(aiChatMessage);
-                vscode.setState({ currentExchangeId: null, lastChat: currentChat, lastChatID: currentChatID });
+                vscode.setState({ currentExchangeId: null, model: currentModel, lastChat: currentChat, lastChatID: currentChatID });
 
                 // if necessary, save chat to file
                 vscode.postMessage({
@@ -269,6 +276,9 @@ document.addEventListener('DOMContentLoaded', (e) => {
                 // reenable sending other prompts to the API
                 messageInput.disabled = false;
                 sendButton.disabled = false;
+                break;
+            case 'openChat':
+                openChat(message.data);
                 break;
             case 'getChatAsJSON':
                 vscode.postMessage({
