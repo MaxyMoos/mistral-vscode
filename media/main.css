@@ -17,6 +17,11 @@ body {
     gap: 10px;
 }
 
+body.vscode-dark > .chat-container {
+    background-color: var(--vscode-editor-background);
+    color: #ffffff;
+}
+
 .input-container {
     display: flex;
     padding: 10px;
@@ -24,6 +29,10 @@ body {
     box-shadow: 0 -1px 5px rgba(0, 0, 0, 0.1);
     align-items: center;
     gap: 10px;
+}
+
+body.vscode-dark > .input-container {
+    background-color: #1e1e1e;
 }
 
 textarea#messageInput {
@@ -38,6 +47,12 @@ textarea#messageInput {
     /* height: 20px; Initial height similar to an input field */
     overflow-y: hidden; /* Hide vertical scrollbar */
     margin-right: 10px; /* Leave space to "Send" button */
+}
+
+body.vscode-dark > .input-container > textarea#messageInput {
+    background-color: #1e1e1e;
+    color: #ffffff;
+    border: 1px solid #333333;
 }
 
 /* Style for the focus state */
@@ -82,6 +97,14 @@ textarea#messageInput:focus {
     background-color: #29d129;
     color: white;
     align-self: flex-end;
+}
+
+body.vscode-dark > .chat-container > .user-message {
+    background-color: #c67300;
+}
+
+body.vscode-dark > .chat-container > .user-message > .message-label {
+    color: #0f0f0f;
 }
 
 .ai-message {
