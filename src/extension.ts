@@ -1,8 +1,9 @@
 import * as vscode from 'vscode';
 import axios from 'axios';
-import { existsSync, mkdirSync, openSync, readFileSync, readSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import path from 'path';
 import * as os from 'os';
+import { config } from 'process';
 
 
 export function activate(context: vscode.ExtensionContext) {
@@ -80,8 +81,32 @@ class MistralChatViewProvider implements vscode.WebviewViewProvider {
 			switch (data.command) {
 				case 'sendMessage':
 					{
+						// If necessary, get Mistral to summarize the chat into a "Chat Title"
+						if (data.chat.length === 1 && this._config.getChatsTitlesByMistral) {
+							let getTitleRequestChat = [
+								{ role: "user", content: `"${data.chat[0].content}"\nSummarize the above request (in quotes) in 7 words or less. Drop verbs, be super concise.`}
+							];
+							let chatTitle = await this._getFullAnswerFromMistralAPI(getTitleRequestChat);
+							// TODO - yeah, put all that in a dedicated function
+							chatTitle = chatTitle
+								.replace(/\//g, '-')
+								.replace(/</g, '')
+								.replace(/>/g, '')
+								.replace(/:/g, '')
+								.replace(/"/g, '')
+								.replace(/\\/g, '')
+								.replace(/\|/g, '')
+								.replace(/\?/, '')
+								.replace(/\*/g, '')
+								.replace(/,/g, '')
+								.replace(/\.$/, '')
+								.replace(/\./g, '-');
+							this._view?.webview.postMessage({ command: 'setChatTitle', title: chatTitle });
+						}
+
 						webviewView.webview.postMessage({ command: 'messageReceived' });
 						this._getStreamedAnswerFromMistralAPI(data.chat, data.model);
+
 						return;
 					}
 				case 'saveChat':
@@ -95,7 +120,12 @@ class MistralChatViewProvider implements vscode.WebviewViewProvider {
 						}
 
 						// Write log file
-						const logFilePath = path.join(saveChatsLocation, `${data.chatID}.json`);
+						let logFilePath = undefined;
+						if (this._config.getChatsTitlesByMistral && data.chatTitle.length > 0) {
+							logFilePath = path.join(saveChatsLocation, `${data.chatTitle}.json`);
+						} else {
+							logFilePath = path.join(saveChatsLocation, `${data.chatID}.json`);
+						}
 						writeFileSync(logFilePath, data.contents);
 						return;
 					}
@@ -149,6 +179,34 @@ class MistralChatViewProvider implements vscode.WebviewViewProvider {
 		webview?.postMessage({ command: 'getChatAsJSON' });
 	}
 
+	private async _getFullAnswerFromMistralAPI(chat: Object, model?: string) {
+		const webview = this._view?.webview;
+		const apiUrl = 'https://api.mistral.ai/v1/chat/completions';
+		const modelToUse = 'mistral-tiny'; // model || 'mistral-tiny';
+		const apiKey = this._config.apiKey;
+
+		if (!modelToUse) {
+			throw new Error("Model not specified");
+		}
+
+		const response = await axios.post(
+			apiUrl,
+			{
+				model: modelToUse,
+				messages: chat,
+			},
+			{ headers: { 'Authorization': `Bearer ${apiKey}` } }
+		);
+
+		if (response.status === 200) {
+			const usage = response.data.usage;
+			const answer = response.data.choices[0].message.content;
+			return answer;
+		} else {
+			vscode.window.showErrorMessage("Mistral API returned HTTP error " + response.status);
+		}
+	}
+
 	private async _getStreamedAnswerFromMistralAPI(chat: Object, model?: string) {
 		const webview = this._view?.webview;
 		const apiUrl = 'https://api.mistral.ai/v1/chat/completions';
@@ -173,21 +231,38 @@ class MistralChatViewProvider implements vscode.WebviewViewProvider {
 		);
 
 		const stream = response.data;
+		let buffer = '';
 
 		stream.on('data', (chunk: any) => {
-			const items = chunk.toString().split('data: ');
+			buffer += chunk.toString();
 
-			items.forEach((item: string) => {
+			const items = buffer.split('data: ');
+
+			items.forEach((item: string, index: number) => {
 				try {
 					if (item.trim() === '[DONE]') {
 						webview?.postMessage({ command: 'endSession' });
+						buffer = '';
 						return;
 					}
 					if (item.trim()) {
-						const jsonData = JSON.parse(item.trim());
-						if (jsonData && jsonData.object && jsonData.object === 'chat.completion.chunk') {
-							if (jsonData && jsonData.choices) {
-								webview?.postMessage({ command: 'newChunk', text: jsonData.choices[0].delta.content });
+						try {
+							const jsonData = JSON.parse(item.trim());
+
+							if (jsonData && jsonData.object && jsonData.object === 'chat.completion.chunk') {
+								if (jsonData.choices) {
+									webview?.postMessage({ command: 'newChunk', text: jsonData.choices[0].delta.content });
+								}
+							}
+
+							if (index === items.length - 1) {
+								buffer = '';
+							}
+						} catch (e) {
+							if (index === items.length - 1) {
+								// wait for more data
+							} else {
+								buffer = '';
 							}
 						}
 					}

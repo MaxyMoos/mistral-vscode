@@ -93,7 +93,7 @@
         },
         "mistral-vscode.mustSaveChats": {
           "type": "boolean",
-          "default": "false",
+          "default": false,
           "scope": "machine-overridable",
           "title": "Save Chats"
         },
@@ -102,6 +102,12 @@
           "default": "~/.mistral-vscode/chats/",
           "scope": "machine",
           "title": "Saved chats location"
+        },
+        "mistral-vscode.getChatsTitlesByMistral": {
+          "type": "boolean",
+          "default": false,
+          "scope": "machine",
+          "title": "Get Mistral to name chats (warning: will cause additional API requests)"
         }
       }
     }

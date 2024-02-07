@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', (e) => {
     const loadingSvgUri = window.loadingSvgUri;
     
     let currentChat = [];
+    let currentChatTitle = '';
     let currentChatID = `chat-${Date.now()}`;
     let currentAIResponse = '';
     let currentModel = defaultModel;
@@ -77,7 +78,12 @@ document.addEventListener('DOMContentLoaded', (e) => {
     // If there's a previous state, the webview was hidden then shown back again, so restore latest chat
     let previousState = vscode.getState();
     if (previousState && previousState.lastChat) {
-        openChat({ chatID: previousState.lastChatID, model: previousState.model || defaultModel, messages: previousState.lastChat });
+        openChat({
+            chatID: previousState.lastChatID,
+            model: previousState.model || defaultModel,
+            messages: previousState.lastChat,
+            currentChatTitle: previousState.lastChatTitle
+        });
     }
 
     /*** ======================= ***/
@@ -87,10 +93,11 @@ document.addEventListener('DOMContentLoaded', (e) => {
     // Clean up everything
     function startNewChat() {
         currentChat = [];
+        currentChatTitle = '';
         currentAIResponse = '';
         currentChatID = `chat-${Date.now()}`;
         chat.innerHTML = '';
-        vscode.setState({ currentExchangeId: null, lastChat: currentChat, lastChatID: currentChatID });
+        vscode.setState({ currentExchangeId: null, lastChat: currentChat, lastChatID: currentChatID, lastChatTitle: currentChatTitle });
     }
 
     function openChat(chatData) {
@@ -264,12 +271,19 @@ document.addEventListener('DOMContentLoaded', (e) => {
             case 'endSession':
                 let aiChatMessage = new ChatMessage("assistant", currentAIResponse);
                 currentChat.push(aiChatMessage);
-                vscode.setState({ currentExchangeId: null, model: currentModel, lastChat: currentChat, lastChatID: currentChatID });
+                vscode.setState({
+                    currentExchangeId: null,
+                    model: currentModel,
+                    lastChat: currentChat,
+                    lastChatID: currentChatID,
+                    lastChatTitle: currentChatTitle,
+                });
 
                 // if necessary, save chat to file
                 vscode.postMessage({
                     command: 'saveChat',
                     chatID: currentChatID,
+                    chatTitle: currentChatTitle,
                     contents: JSON.stringify({ model: currentModel, messages: currentChat }, undefined, 4)
                 });
 
@@ -285,6 +299,9 @@ document.addEventListener('DOMContentLoaded', (e) => {
                     command: 'didExportChatAsJSON',
                     contents: JSON.stringify({ model: currentModel, messages: currentChat }, undefined, 4)
                 });
+                break;
+            case 'setChatTitle':
+                currentChatTitle = message.title;
                 break;
         }
     });
