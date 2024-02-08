@@ -3,8 +3,6 @@ import axios from 'axios';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import path from 'path';
 import * as os from 'os';
-import { config } from 'process';
-
 
 export function activate(context: vscode.ExtensionContext) {
 	const provider = new MistralChatViewProvider(context.extensionUri);
@@ -87,20 +85,7 @@ class MistralChatViewProvider implements vscode.WebviewViewProvider {
 								{ role: "user", content: `"${data.chat[0].content}"\nSummarize the above request (in quotes) in 7 words or less. Drop verbs, be super concise.`}
 							];
 							let chatTitle = await this._getFullAnswerFromMistralAPI(getTitleRequestChat);
-							// TODO - yeah, put all that in a dedicated function
-							chatTitle = chatTitle
-								.replace(/\//g, '-')
-								.replace(/</g, '')
-								.replace(/>/g, '')
-								.replace(/:/g, '')
-								.replace(/"/g, '')
-								.replace(/\\/g, '')
-								.replace(/\|/g, '')
-								.replace(/\?/, '')
-								.replace(/\*/g, '')
-								.replace(/,/g, '')
-								.replace(/\.$/, '')
-								.replace(/\./g, '-');
+							chatTitle = stringToValidFilename(chatTitle);
 							this._view?.webview.postMessage({ command: 'setChatTitle', title: chatTitle });
 						}
 
@@ -199,14 +184,46 @@ class MistralChatViewProvider implements vscode.WebviewViewProvider {
 		);
 
 		if (response.status === 200) {
-			const usage = response.data.usage;
-			const answer = response.data.choices[0].message.content;
-			return answer;
+			return response.data.choices[0].message.content;
 		} else {
 			vscode.window.showErrorMessage("Mistral API returned HTTP error " + response.status);
 		}
 	}
 
+	/**
+	 * Asynchronously retrieves streamed answers from the Mistral API based on the provided chat input
+	 * and model configuration. This method sends a chat object to the Mistral API and listens for streamed
+	 * responses. It processes these responses in real-time and updates the webview with new content as it arrives.
+	 * 
+	 * The method supports streaming by keeping an open connection to the Mistral API and continuously reading
+	 * data as it is sent. It handles stream data in chunks, ensuring that partial data can be accumulated and
+	 * processed correctly.
+	 * 
+	 * Process:
+	 * 1. Constructs the API URL and headers, including the authorization token.
+	 * 2. Validates the provided model or uses a default model from the extension's configuration.
+	 * 3. Initiates a POST request to the Mistral API with the chat input, specifying that the response
+	 *    should be streamed.
+	 * 4. Listens for data chunks from the response stream. Chunks are accumulated in a buffer and processed
+	 *    to handle potentially incomplete JSON objects.
+	 * 5. Each complete JSON object is parsed and used to update the webview with new content, such as the
+	 *    chat completion chunks.
+	 * 6. Special markers (e.g., '[DONE]') in the stream indicate the end of the session, triggering cleanup
+	 *    and termination of the stream processing.
+	 * 
+	 * This method utilizes error handling to manage parsing errors and ensures that partial data is not
+	 * discarded prematurely, allowing for the accumulation of data until a complete and valid JSON object
+	 * can be formed and processed.
+	 * 
+	 * The use of a buffer to accumulate data chunks is a key aspect of handling streamed responses, especially
+	 * when dealing with JSON data that may be split across multiple chunks.
+	 * 
+	 * @param {Object} chat - The chat input object to send to the Mistral API.
+	 * @param {string} [model] - Optional. The model identifier to use for generating responses. If not
+	 * provided, a default model specified in the extension's configuration is used.
+	 * @throws {Error} Throws an error if the model is not specified and no default model is configured.
+	 * @private
+	 */
 	private async _getStreamedAnswerFromMistralAPI(chat: Object, model?: string) {
 		const webview = this._view?.webview;
 		const apiUrl = 'https://api.mistral.ai/v1/chat/completions';
@@ -273,6 +290,26 @@ class MistralChatViewProvider implements vscode.WebviewViewProvider {
 		});
 	}
 
+	/**
+	 * Constructs the HTML content for a Visual Studio Code webview. This method
+	 * prepares and includes necessary resources such as CSS for styling, JavaScript for functionality,
+	 * and an SVG for a loading indicator. It ensures that resources are correctly loaded within
+	 * the webview context by converting local file URIs to webview-compatible URIs.
+	 * 
+	 * This method utilizes the Visual Studio Code API to generate URIs for local files in the
+	 * extension's media directory, making them accessible within the webview. It also employs a nonce
+	 * for Content Security Policy (CSP) purposes, enhancing the security of the webview content.
+	 * 
+	 * The HTML structure includes links to the main stylesheet, the Highlight.js stylesheet for code
+	 * syntax highlighting, and scripts for additional functionality. The method dynamically generates
+	 * these links using the `webview.asWebviewUri` method to ensure they are accessible within the webview.
+	 * 
+	 * @param {vscode.Webview} webview - The webview instance for which to generate the HTML content.
+	 * @return {string} - A string containing the full HTML document to be loaded into the webview. This
+	 * includes DOCTYPE declaration, html tag with language attribute, head section with meta tags for
+	 * responsive design and character set, links to CSS files, and script tags for JavaScript resources.
+	 * The body of the HTML is represented as `[...]` to indicate the actual content has been omitted for brevity.
+	 */
 	private _getHtmlForWebview(webview: vscode.Webview): string {
 		const defaultModel = this._config.defaultModel;
 
@@ -333,6 +370,22 @@ class MistralChatViewProvider implements vscode.WebviewViewProvider {
 	}
 }
 
+/**
+ * Generates a random nonce string of 32 characters. The nonce consists of 
+ * alphanumeric characters, including both uppercase and lowercase letters 
+ * as well as digits.
+ * 
+ * The function works by iterating 32 times to construct a string. In each 
+ * iteration, it randomly selects a character from a predefined set of possible 
+ * characters ('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789') 
+ * and appends it to the result string.
+ * 
+ * This method is commonly used to generate a unique identifier or token for 
+ * security purposes, ensuring that each output is highly unlikely to be 
+ * replicated through subsequent calls.
+ * 
+ * @return {string} - A random 32-character alphanumeric string (nonce).
+ */
 function getNonce() {
 	let text = '';
 	const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -340,4 +393,34 @@ function getNonce() {
 		text += possible.charAt(Math.floor(Math.random() * possible.length));
 	}
 	return text;
+}
+
+/**
+ * Transforms a string into a valid filename by removing or replacing characters 
+ * that are not allowed in file names across various operating systems.
+ * 
+ * The function performs the following operations:
+ * - Replaces slashes (/) with dashes (-) to avoid directory separator conflicts.
+ * - Removes characters that are generally not allowed in filenames such as 
+ *   <, >, :, ", \, |, ?, *, and ,.
+ * - Removes trailing periods (.) as they can cause issues on Windows.
+ * - Replaces all other periods (.) with dashes (-) to avoid confusion with file extensions.
+ * 
+ * @param {string} str - The input string to be sanitized for use as a filename.
+ * @return {string} - The sanitized string, safe to use as a filename across different operating systems.
+ */
+function stringToValidFilename(str: string) {
+	return str
+		.replace(/\//g, '-')
+		.replace(/</g, '')
+		.replace(/>/g, '')
+		.replace(/:/g, '')
+		.replace(/"/g, '')
+		.replace(/\\/g, '')
+		.replace(/\|/g, '')
+		.replace(/\?/, '')
+		.replace(/\*/g, '')
+		.replace(/,/g, '')
+		.replace(/\.$/, '')
+		.replace(/\./g, '-');	
 }
