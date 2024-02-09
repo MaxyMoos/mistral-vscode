@@ -27,6 +27,8 @@ document.addEventListener('DOMContentLoaded', (e) => {
     const sendButton = document.getElementById('sendButton');
     const startNewChatButton = document.getElementById('startNewChat');
 
+    const originalInputHeight = messageInput.style.height;
+
     /*** Model selection ***/
     function toggleTooltip() {
         const tooltip = document.getElementById('modelTooltip');
@@ -166,6 +168,7 @@ document.addEventListener('DOMContentLoaded', (e) => {
 
             // UI stuff
             messageInput.value = ''; // clear the input after sending
+            messageInput.style.height = originalInputHeight; // reset original input height
             messageInput.disabled = true;
             sendButton.disabled = true;
             scrollToBottom();
