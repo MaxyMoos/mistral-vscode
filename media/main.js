@@ -119,9 +119,10 @@ document.addEventListener('DOMContentLoaded', (e) => {
         let escapedContent = escapeHTML(chatMessage.content);
 
         // Regex to detect code blocks in Markdown triple-quotes
-        var codeBlockRegex = /```(\w+)\s([^`]+)```/g;
+        var codeBlockRegex = /```(\w+)?\s([^`]+)```/g;
         escapedContent = escapedContent.replace(codeBlockRegex, function(match, language, code) {
-            return `<pre><code class="language-${language}">${code}</code></pre>`;
+            var languageClass = language ? `language-${language}` : 'language-plaintext';
+            return `<pre><code class="${languageClass}">${code}</code></pre>`;
         });
 
         var codeTermsRegex = /`([\w-_]+)`/g;
@@ -202,7 +203,7 @@ document.addEventListener('DOMContentLoaded', (e) => {
         }
 
         // Handle code block language being split across chunks
-        if (!isInsideCodeBlock && content.match(/```/) && !content.match(/```\w+\n/)) {
+        if (!isInsideCodeBlock && content.match(/```/) && !content.match(/```(\w+)?\n/)) {
             // we're missing the language, bufferize the partial match
             delimiterBuffer = '```' + content.split('```')[1];
             content = content.slice(0, content.indexOf('```'));
