@@ -4,68 +4,38 @@ Allows you to chat using the Mistral AI API directly within VS Code.
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+- A nice-looking (debatable) chat view
+- Select the Mistral model to use on-the-fly, even mid-convo
+- Mistral platform responses are streamed to the chat window
+- Code blocks highlighting in responses
+- Chat history, with the ability to reload a previous chat and resume the conversation
+- 2 adaptive color schemes (ugly light/terrible dark)
 
-For example if there is an image subfolder under your extension project workspace:
-
-\!\[feature X\]\(images/feature-x.png\)
-
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+![Mistral Chat](doc/images/chatExample.gif)
 
 ## Requirements
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+You'll need a Mistral API key and to set it up in the extension settings.
 
 ## Extension Settings
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
-
 This extension contributes the following settings:
 
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+* `mistral-vscode.apiKey`: Your Mistral API key (not synced)
+* `mistral-vscode.defaultModel`: The default Mistral model to use : `mistral-tiny`, `mistral-small` or `mistral-medium` as of February 2024 (default: `mistral-tiny`)
+* `mistral-vscode.mustSaveChats`: Should VSCode save chat history (default: `false`)
+* `mistral-vscode.saveChatsLocation`: If chat history is enabled, the folder in which chats are saved (default: `~/.mistral-vscode/chats/`)
+* `mistral-vscode.getChatsTitlesByMistral`: If chat history is enabled, should the extension ask `mistral-tiny` to name chat files with an explicit description (default: `false`). **Enabling this _will_ cause additional Mistral API requests and thus increase billing (though not by much)**
+
 
 ## Known Issues
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+Formatting single tick elements (like variable names outside of code blocks) during streaming is not yet supported.
+
+It does work when reloading a previous chat though.
 
 ## Release Notes
 
-Users appreciate release notes as you update your extension.
+### 0.0.1
 
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
----
-
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+Initial release
