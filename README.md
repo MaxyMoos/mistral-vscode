@@ -30,12 +30,18 @@ This extension contributes the following settings:
 
 ## Known Issues
 
-Formatting single tick elements (like variable names outside of code blocks) during streaming is not yet supported.
+Formatting issues when lots of backticks are found in the Mistral responses (think: asking questions about regex including backticks).
 
-It does work when reloading a previous chat though.
+Then again, even ChatGPT struggles with these cases.
 
 ## Release Notes
 
-### 0.0.1
+### v0.0.2
 
-Initial release
+- Better formatting of code terms (not code blocks) during response streaming
+- Added `Start new chat` item in context menu
+- Tweaked system prompt for getting chat titles from Mistral
+
+### v0.0.1
+
+- Initial release
