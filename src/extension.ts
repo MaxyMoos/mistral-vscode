@@ -82,7 +82,8 @@ class MistralChatViewProvider implements vscode.WebviewViewProvider {
 						// If necessary, get Mistral to summarize the chat into a "Chat Title"
 						if (data.chat.length === 1 && this._config.getChatsTitlesByMistral) {
 							let getTitleRequestChat = [
-								{ role: "user", content: `"${data.chat[0].content}"\nSummarize the above request (in quotes) in 7 words or less. Drop verbs, be super concise.`}
+								{ role: "system", content: "You are a masterful assistant that extracts a general topic from a request sent by the user into a very short sequence of words.\nIt is very important that the output is in 7 WORDS OR LESS. The output must not contain characters that would prevent it from being used as a filename on Windows/MacOS or Linux environments. Your answer must ONLY contain ONE summary, NO alternative propositions, NO notes, NO addendum."},
+								{ role: "user", content: `${data.chat[0].content}`}
 							];
 							let chatTitle = await this._getFullAnswerFromMistralAPI(getTitleRequestChat);
 							chatTitle = stringToValidFilename(chatTitle);
