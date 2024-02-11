@@ -102,6 +102,7 @@ document.addEventListener('DOMContentLoaded', (e) => {
         vscode.setState({ currentExchangeId: null, lastChat: currentChat, lastChatID: currentChatID, lastChatTitle: currentChatTitle });
     }
 
+    /* Open a chat from history */
     function openChat(chatData) {
         startNewChat();
         currentModel = chatData.model;
@@ -115,6 +116,7 @@ document.addEventListener('DOMContentLoaded', (e) => {
         scrollToBottom();
     }
 
+    /* Formats a chat message from a previous chat session */
     function formatMessage(chatMessage) {
         let escapedContent = escapeHTML(chatMessage.content);
 
@@ -129,8 +131,6 @@ document.addEventListener('DOMContentLoaded', (e) => {
 
         // Regular expression to match '\n' outside of '<pre>' and '</pre>'
         var regex = /(<pre>.*?<\/pre>)|(\n)/gs;
-
-        // Replace '\n' with '<br>' except within '<pre>' and '</pre>'
         escapedContent = escapedContent.replace(regex, function (match, codeBlock, newline) {
             if (codeBlock) {
                 return codeBlock; // Return '<pre>' content unchanged
@@ -313,11 +313,8 @@ document.addEventListener('DOMContentLoaded', (e) => {
             case 'openChat':
                 openChat(message.data);
                 break;
-            case 'getChatAsJSON':
-                vscode.postMessage({
-                    command: 'didExportChatAsJSON',
-                    contents: JSON.stringify({ model: currentModel, messages: currentChat }, undefined, 4)
-                });
+            case 'startNewChat':
+                startNewChat();
                 break;
             case 'setChatTitle':
                 currentChatTitle = message.title;

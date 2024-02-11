@@ -42,7 +42,7 @@
           "when": "false"
         },
         {
-          "command": "mistral-vscode.exportChatJSON",
+          "command": "mistral-vscode.startNewChat",
           "when": "false"
         }
       ],
@@ -50,19 +50,23 @@
         {
           "when": "webviewId == mistral-vscode.mistralChatView",
           "command": "mistral-vscode.openChat",
-          "group": "navigation"
+          "group": "navigation@2"
         },
         {
           "when": "webviewId == mistral-vscode.mistralChatView",
-          "command": "mistral-vscode.exportChatJSON",
-          "group": "navigation"
+          "command": "mistral-vscode.startNewChat",
+          "group": "navigation@1"
         }
       ]
     },
     "commands": [
       {
         "command": "mistral-vscode.openChat",
-        "title": "Open chat"
+        "title": "Open previous chat"
+      },
+      {
+        "command": "mistral-vscode.startNewChat",
+        "title": "Start new chat"
       },
       {
         "command": "mistral-vscode.exportChatJSON",

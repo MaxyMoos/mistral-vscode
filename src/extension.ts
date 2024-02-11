@@ -7,14 +7,14 @@ import * as os from 'os';
 export function activate(context: vscode.ExtensionContext) {
 	const provider = new MistralChatViewProvider(context.extensionUri);
 	const openChatCommand = 'mistral-vscode.openChat';
-	const exportAsJSONCommand = 'mistral-vscode.exportChatJSON';
+	const startNewChatCommand = 'mistral-vscode.startNewChat';
 
 	const openChat = () => {
 		provider.openChat();
 	};
 
-	const exportChatAsJSON = () => {
-		provider.exportChatAsJSON();
+	const startNewChat = () => {
+		provider.startNewChat();
 	};
 
 	// register our custom webview provider
@@ -25,7 +25,7 @@ export function activate(context: vscode.ExtensionContext) {
 	// register commands
 	context.subscriptions.push(
 		vscode.commands.registerCommand(openChatCommand, openChat),
-		vscode.commands.registerCommand(exportAsJSONCommand, exportChatAsJSON)
+		vscode.commands.registerCommand(startNewChatCommand, startNewChat),
 	);
 }
 
@@ -160,9 +160,9 @@ class MistralChatViewProvider implements vscode.WebviewViewProvider {
 		return;
 	}
 
-	public exportChatAsJSON() {
+	public startNewChat() {
 		const webview = this._view?.webview;
-		webview?.postMessage({ command: 'getChatAsJSON' });
+		webview?.postMessage({ command: 'startNewChat' });
 	}
 
 	private async _getFullAnswerFromMistralAPI(chat: Object, model?: string) {
