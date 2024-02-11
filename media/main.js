@@ -125,10 +125,7 @@ document.addEventListener('DOMContentLoaded', (e) => {
             return `<pre><code class="${languageClass}">${code}</code></pre>`;
         });
 
-        var codeTermsRegex = /`([\w-_]+)`/g;
-        escapedContent = escapedContent.replace(codeTermsRegex, function(match, codeTerm) {
-            return `<code>${codeTerm}</code>`;
-        });
+        escapedContent = formatTextOutsideCodeBlocks(escapedContent);
 
         // Regular expression to match '\n' outside of '<pre>' and '</pre>'
         var regex = /(<pre>.*?<\/pre>)|(\n)/gs;
@@ -148,6 +145,23 @@ document.addEventListener('DOMContentLoaded', (e) => {
             case 'user':
                 return `<div class="message user-message"><div class="message-label">[YOU]</div>${escapedContent}</div>`;
         }
+    }
+
+    function formatTextOutsideCodeBlocks(text) {
+        const regex = /<code>[\s\S]*?<\/code>|([\s\S]*?)(?=<code>|$)/g;
+
+        return text.replace(regex, (match, nonCodePart) => {
+            if (nonCodePart !== undefined) {
+                var codeTermsRegex = /`([^`]+)`/g;
+                var boldRegex = /\*\*([\wÀ-ÖØ-öø-ÿ\s\(\)\[\]\-\+:=]+)\*\*/g; // awful but works
+                return nonCodePart
+                    .replace(codeTermsRegex, function(match, codeTerm) { return `<code>${codeTerm}</code>`; })
+                    .replace(boldRegex, function(match, boldTerm) { return `<b>${boldTerm}</b>`; });
+            } else {
+                // This is a <code> block, return it unchanged
+                return match;
+            }
+        });
     }
 
     // Send the user input to the backend
@@ -246,6 +260,7 @@ document.addEventListener('DOMContentLoaded', (e) => {
             }
         }
 
+        exchangeDiv.innerHTML = formatTextOutsideCodeBlocks(exchangeDiv.innerHTML);
         hljs.highlightAll();
         scrollToBottom();
     }
