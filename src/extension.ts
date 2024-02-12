@@ -4,6 +4,10 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import path from 'path';
 import * as os from 'os';
 
+
+const MISTRAL_CHAT_COMPLETION_URL = 'https://api.mistral.ai/v1/chat/completions';
+
+
 export function activate(context: vscode.ExtensionContext) {
 	const provider = new MistralChatViewProvider(context.extensionUri);
 	const openChatCommand = 'mistral-vscode.openChat';
@@ -128,6 +132,9 @@ class MistralChatViewProvider implements vscode.WebviewViewProvider {
 		});
 	}
 
+	/*
+	 * Lets the user select a previous chat JSON file to restore the chat session
+	 */
 	public openChat() {
 		let saveChatsLocation = this.getSavedChatsLocation();
 
@@ -157,7 +164,7 @@ class MistralChatViewProvider implements vscode.WebviewViewProvider {
 				this._view?.webview.postMessage({ command: 'openChat', data: jsonContents });
 			}
 		});
-		return;
+		return;	
 	}
 
 	public startNewChat() {
@@ -165,29 +172,45 @@ class MistralChatViewProvider implements vscode.WebviewViewProvider {
 		webview?.postMessage({ command: 'startNewChat' });
 	}
 
-	private async _getFullAnswerFromMistralAPI(chat: Object, model?: string) {
-		const webview = this._view?.webview;
-		const apiUrl = 'https://api.mistral.ai/v1/chat/completions';
-		const modelToUse = 'mistral-tiny'; // model || 'mistral-tiny';
+	/*
+	 * Retrieves an answer from the Mistral API based on the provided chat input.
+	 * This method *awaits* for the entire response from the Mistral API before returning.
+	 * The API key & model to use are retrieved from the extension configuration.
+	 */
+	private async _getFullAnswerFromMistralAPI(chat: Object) {
 		const apiKey = this._config.apiKey;
+		const modelToUse = this._config.chatsTitlesModel;
 
 		if (!modelToUse) {
 			throw new Error("Model not specified");
 		}
 
-		const response = await axios.post(
-			apiUrl,
-			{
-				model: modelToUse,
-				messages: chat,
-			},
-			{ headers: { 'Authorization': `Bearer ${apiKey}` } }
-		);
-
-		if (response.status === 200) {
+		try {
+			const response = await axios.post(
+				MISTRAL_CHAT_COMPLETION_URL,
+				{
+					model: modelToUse,
+					messages: chat,
+				},
+				{ headers: { 'Authorization': `Bearer ${apiKey}` } }
+			);
 			return response.data.choices[0].message.content;
-		} else {
-			vscode.window.showErrorMessage("Mistral API returned HTTP error " + response.status);
+		} catch (error: unknown) {
+			if (axios.isAxiosError(error)) {
+				if (error.response) {
+					// request was made and the server answered with a status code outside of 2xx
+					vscode.window.showErrorMessage("Mistral API answered with HTTP code " + error.response.status);
+					console.log(error.response);
+				} else if (error.request) {
+					// request was made but no response received
+					vscode.window.showErrorMessage("No response received from server.");
+					console.log(error.request);
+				} else {
+					// request couldn't even be built & sent
+					console.log(error.message);
+				}
+				console.log(error.toJSON());
+			}
 		}
 	}
 
@@ -227,7 +250,6 @@ class MistralChatViewProvider implements vscode.WebviewViewProvider {
 	 */
 	private async _getStreamedAnswerFromMistralAPI(chat: Object, model?: string) {
 		const webview = this._view?.webview;
-		const apiUrl = 'https://api.mistral.ai/v1/chat/completions';
 		const modelToUse = model || this._config.preferredModel;
 		const apiKey = this._config.apiKey;
 
@@ -235,60 +257,78 @@ class MistralChatViewProvider implements vscode.WebviewViewProvider {
 			throw new Error("Model not specified. Please provide a model or set a default value in the extension settings.");
 		}
 
-		const response = await axios.post(
-			apiUrl,
-			{
-				model: modelToUse,
-				messages: chat,
-				stream: true
-			},
-			{
-				headers: { 'Authorization': `Bearer ${apiKey}` },
-				responseType: 'stream'
-			}
-		);
+		try {
+			const response = await axios.post(
+				MISTRAL_CHAT_COMPLETION_URL,
+				{
+					model: modelToUse,
+					messages: chat,
+					stream: true
+				},
+				{
+					headers: { 'Authorization': `Bearer ${apiKey}` },
+					responseType: 'stream'
+				}
+			);
 
-		const stream = response.data;
-		let buffer = '';
-
-		stream.on('data', (chunk: any) => {
-			buffer += chunk.toString();
-
-			const items = buffer.split('data: ');
-
-			items.forEach((item: string, index: number) => {
-				try {
-					if (item.trim() === '[DONE]') {
-						webview?.postMessage({ command: 'endSession' });
-						buffer = '';
-						return;
-					}
-					if (item.trim()) {
-						try {
-							const jsonData = JSON.parse(item.trim());
-
-							if (jsonData && jsonData.object && jsonData.object === 'chat.completion.chunk') {
-								if (jsonData.choices) {
-									webview?.postMessage({ command: 'newChunk', text: jsonData.choices[0].delta.content });
+			const stream = response.data;
+			let buffer = '';
+	
+			stream.on('data', (chunk: any) => {
+				buffer += chunk.toString();
+	
+				const items = buffer.split('data: ');
+	
+				items.forEach((item: string, index: number) => {
+					try {
+						if (item.trim() === '[DONE]') {
+							webview?.postMessage({ command: 'endSession' });
+							buffer = '';
+							return;
+						}
+						if (item.trim()) {
+							try {
+								const jsonData = JSON.parse(item.trim());
+	
+								if (jsonData && jsonData.object && jsonData.object === 'chat.completion.chunk') {
+									if (jsonData.choices) {
+										webview?.postMessage({ command: 'newChunk', text: jsonData.choices[0].delta.content });
+									}
+								}
+	
+								if (index === items.length - 1) {
+									buffer = '';
+								}
+							} catch (e) {
+								if (index === items.length - 1) {
+									// wait for more data
+								} else {
+									buffer = '';
 								}
 							}
-
-							if (index === items.length - 1) {
-								buffer = '';
-							}
-						} catch (e) {
-							if (index === items.length - 1) {
-								// wait for more data
-							} else {
-								buffer = '';
-							}
 						}
+					} catch (error) {
+						console.error("Error parsing item: ", error);
 					}
-				} catch (error) {
-					console.error("Error parsing item: ", error);
-				}
+				});
 			});
-		});
+		} catch (error: unknown) {
+			if (axios.isAxiosError(error)) {
+				if (error.response) {
+					// request was made and the server answered with a status code outside of 2xx
+					vscode.window.showErrorMessage("Mistral API answered with HTTP code " + error.response.status);
+					console.log(error.response);
+				} else if (error.request) {
+					// request was made but no response received
+					vscode.window.showErrorMessage("No response received from server.");
+					console.log(error.request);
+				} else {
+					// request couldn't even be built & sent
+					console.log(error.message);
+				}
+				console.log(error.toJSON());
+			}
+		}
 	}
 
 	/**
