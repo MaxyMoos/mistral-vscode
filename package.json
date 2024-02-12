@@ -72,6 +72,13 @@
     "configuration": {
       "title": "Mistral API",
       "properties": {
+        "mistral-vscode.apiKey": {
+          "type": "string",
+          "default": "",
+          "scope": "machine-overridable",
+          "description": "Your Mistral API key, required for the extension to work",
+          "order": 1
+        },
         "mistral-vscode.defaultModel": {
           "type": "string",
           "default": "mistral-tiny",
@@ -85,30 +92,29 @@
             "Mixtral-8X7B-v0.1: Higher reasoning capabilities and more capabilities. The endpoint supports English, French, German, Italian, and Spanish and can produce and reason about code.",
             "Internal prototype model"
           ],
-          "title": "Default model to use in new chats"
-        },
-        "mistral-vscode.apiKey": {
-          "type": "string",
-          "default": "",
-          "scope": "machine-overridable"
+          "title": "Default model to use in new chats",
+          "order": 2
         },
         "mistral-vscode.mustSaveChats": {
           "type": "boolean",
           "default": false,
           "scope": "machine-overridable",
-          "title": "Save Chats"
+          "title": "Save Chats",
+          "order": 3
         },
         "mistral-vscode.saveChatsLocation": {
           "type": "string",
           "default": "~/.mistral-vscode/chats/",
           "scope": "machine",
-          "title": "Saved chats location"
+          "title": "Saved chats location",
+          "order": 4
         },
         "mistral-vscode.getChatsTitlesByMistral": {
           "type": "boolean",
           "default": false,
           "scope": "machine",
-          "title": "Get Mistral to name chats (warning: will cause additional API requests)"
+          "title": "Get Mistral to name chats (warning: will cause additional API requests)",
+          "order": 5
         },
         "mistral-vscode.chatsTitlesModel": {
           "type": "string",
@@ -117,7 +123,8 @@
             "mistral-tiny",
             "mistral-small",
             "mistral-medium"
-          ]
+          ],
+          "order": 6
         }
       }
     }
