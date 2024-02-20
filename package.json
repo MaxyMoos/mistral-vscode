@@ -93,6 +93,7 @@
             "Internal prototype model"
           ],
           "title": "Default model to use in new chats",
+          "description": "The default model that will be used when starting a new chat or picking up an old one",
           "order": 2
         },
         "mistral-vscode.mustSaveChats": {
@@ -100,6 +101,7 @@
           "default": false,
           "scope": "machine-overridable",
           "title": "Save Chats",
+          "description": "Should the extension save chats automatically (as JSON)",
           "order": 3
         },
         "mistral-vscode.saveChatsLocation": {
@@ -107,6 +109,7 @@
           "default": "~/.mistral-vscode/chats/",
           "scope": "machine",
           "title": "Saved chats location",
+          "description": "The folder in which the chat history shall be kept (using '~' is fine)",
           "order": 4
         },
         "mistral-vscode.getChatsTitlesByMistral": {
@@ -114,6 +117,7 @@
           "default": false,
           "scope": "machine",
           "title": "Get Mistral to name chats (warning: will cause additional API requests)",
+          "description": "Get Mistral to name chats (warning: will cause additional API requests)",
           "order": 5
         },
         "mistral-vscode.chatsTitlesModel": {
@@ -124,6 +128,7 @@
             "mistral-small",
             "mistral-medium"
           ],
+          "description": "The model to use for generating chat titles",
           "order": 6
         }
       }
