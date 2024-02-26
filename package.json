@@ -7,7 +7,7 @@
     "type": "git",
     "url": "https://github.com/MaxyMoos/mistral-vscode.git"
   },
-  "version": "0.0.2",
+  "version": "0.0.3",
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -81,16 +81,20 @@
         },
         "mistral-vscode.defaultModel": {
           "type": "string",
-          "default": "mistral-tiny",
+          "default": "open-mistral-7b",
           "enum": [
-            "mistral-tiny",
-            "mistral-small",
-            "mistral-medium"
+            "open-mistral-7b",
+            "open-mixtral-8x7b",
+            "mistral-small-latest",
+            "mistral-medium-latest",
+            "mistral-large-latest"
           ],
           "enumDescriptions": [
-            "Mistral-7B-v0.2: best used for large batch processing tasks where cost is a significant factor but reasoning capabilities are not crucial.",
-            "Mixtral-8X7B-v0.1: Higher reasoning capabilities and more capabilities. The endpoint supports English, French, German, Italian, and Spanish and can produce and reason about code.",
-            "Internal prototype model"
+            "aka mistral-tiny-2312",
+            "aka mistral-small-2312",
+            "aka mistral-small-2402",
+            "aka mistral-medium-2312",
+            "aka mistral-large-2402"
           ],
           "title": "Default model to use in new chats",
           "description": "The default model that will be used when starting a new chat or picking up an old one",
@@ -122,11 +126,13 @@
         },
         "mistral-vscode.chatsTitlesModel": {
           "type": "string",
-          "default": "mistral-tiny",
+          "default": "open-mistral-7b",
           "enum": [
-            "mistral-tiny",
-            "mistral-small",
-            "mistral-medium"
+            "open-mistral-7b",
+            "open-mixtral-8x7b",
+            "mistral-small-latest",
+            "mistral-medium-latest",
+            "mistral-large-latest"
           ],
           "description": "The model to use for generating chat titles",
           "order": 6

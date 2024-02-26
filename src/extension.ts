@@ -405,9 +405,11 @@ class MistralChatViewProvider implements vscode.WebviewViewProvider {
 						<hr/>
 						<span><b>Active model</b></span>
 						<ul>
-							<li class="modelSelector" data-model="mistral-tiny">mistral-tiny</li>
-							<li class="modelSelector" data-model="mistral-small">mistral-small</li>
-							<li class="modelSelector" data-model="mistral-medium">mistral-medium</li>
+							<li class="modelSelector" data-model="open-mistral-7b">open-mistral-7b</li>
+							<li class="modelSelector" data-model="open-mixtral-8x7b">open-mixtral-8x7b</li>
+							<li class="modelSelector" data-model="mistral-small-latest">mistral-small-latest</li>
+							<li class="modelSelector" data-model="mistral-medium-latest">mistral-medium-latest</li>
+							<li class="modelSelector" data-model="mistral-large-latest">mistral-large-latest</li>
 						</ul>
 					</div>
 				</div>
