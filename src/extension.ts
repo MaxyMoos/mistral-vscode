@@ -259,7 +259,7 @@ class MistralChatViewProvider implements vscode.WebviewViewProvider {
 	 */
 	private async _getStreamedAnswerFromMistralAPI(chat: Object, model?: string) {
 		const webview = this._view?.webview;
-		const modelToUse = model || this._config.preferredModel;
+		const modelToUse = model || this._config.defaultModel;
 		const apiKey = this._config.apiKey;
 
 		if (!modelToUse) {
@@ -405,11 +405,14 @@ class MistralChatViewProvider implements vscode.WebviewViewProvider {
 						<hr/>
 						<span><b>Active model</b></span>
 						<ul>
-							<li class="modelSelector" data-model="open-mistral-7b">open-mistral-7b</li>
-							<li class="modelSelector" data-model="open-mixtral-8x7b">open-mixtral-8x7b</li>
-							<li class="modelSelector" data-model="mistral-small-latest">mistral-small-latest</li>
-							<li class="modelSelector" data-model="mistral-medium-latest">mistral-medium-latest</li>
-							<li class="modelSelector" data-model="mistral-large-latest">mistral-large-latest</li>
+							<li class="modelSelector" data-model="mistral-large-latest">Mistral Large</li>
+							<li class="modelSelector" data-model="pixtral-large-latest">Pixtral Large</li>
+							<li class="modelSelector" data-model="mistral-moderation-latest">Mistral Moderation</li>
+							<li class="modelSelector" data-model="ministral-3b-latest">Ministral 3B</li>
+							<li class="modelSelector" data-model="ministral-8b-latest">Ministral 8B</li>
+							<li class="modelSelector" data-model="open-mistral-nemo">Mistral Nemo</li>
+							<li class="modelSelector" data-model="mistral-small-latest">Mistral Small</li>
+							<li class="modelSelector" data-model="codestral-latest">Codestral</li>
 						</ul>
 					</div>
 				</div>

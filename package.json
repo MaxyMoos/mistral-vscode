@@ -2,12 +2,12 @@
   "name": "mistral-vscode",
   "displayName": "Mistral-vscode",
   "description": "Call the Mistral API directly from VS Code",
-  "publisher": "Maxence Groine",
+  "publisher": "MaxyMoos",
   "repository": {
     "type": "git",
     "url": "https://github.com/MaxyMoos/mistral-vscode.git"
   },
-  "version": "0.0.3",
+  "version": "0.0.4",
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -26,7 +26,7 @@
         }
       ]
     },
-    "views" : {
+    "views": {
       "mistral-chat": [
         {
           "type": "webview",
@@ -81,20 +81,26 @@
         },
         "mistral-vscode.defaultModel": {
           "type": "string",
-          "default": "open-mistral-7b",
+          "default": "codestral-latest",
           "enum": [
-            "open-mistral-7b",
-            "open-mixtral-8x7b",
+            "mistral-large-latest",
+            "pixtral-large-latest",
+            "mistral-moderation-latest",
+            "ministral-3b-latest",
+            "ministral-8b-latest",
+            "open-mistral-nemo",
             "mistral-small-latest",
-            "mistral-medium-latest",
-            "mistral-large-latest"
+            "codestral-latest"
           ],
           "enumDescriptions": [
-            "aka mistral-tiny-2312",
-            "aka mistral-small-2312",
-            "aka mistral-small-2402",
-            "aka mistral-medium-2312",
-            "aka mistral-large-2402"
+            "aka mistral-large-2411",
+            "aka pixstral-large-2411",
+            "aka mistral-moderation-2411",
+            "aka ministral-3b-2410",
+            "aka ministral-8b-2410",
+            "aka open-mistral-nemo-2407",
+            "aka mistral-small-2409",
+            "aka codestral-2405"
           ],
           "title": "Default model to use in new chats",
           "description": "The default model that will be used when starting a new chat or picking up an old one",
@@ -160,6 +166,6 @@
     "typescript": "^5.3.3"
   },
   "dependencies": {
-    "axios": "^1.6.3"
+    "axios": "^1.7.9"
   }
 }
